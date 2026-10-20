@@ -283,3 +283,107 @@ export interface SaleSummary {
   status: SaleStatus;
   itemCount: number;
 }
+
+export type PurchaseStatus = 'Completed' | 'Voided';
+
+export interface PurchaseLine {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitCost: number;
+  lineTotal: number;
+}
+
+export interface Purchase {
+  id: string;
+  number: number;
+  date: string;
+  supplierId: string;
+  supplierName: string;
+  supplierInvoice: string | null;
+  total: number;
+  notes: string | null;
+  status: PurchaseStatus;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
+  createdByName: string;
+  createdAt: string;
+  lines: PurchaseLine[];
+}
+
+export interface PurchaseSummary {
+  id: string;
+  number: number;
+  date: string;
+  supplierName: string;
+  supplierInvoice: string | null;
+  total: number;
+  status: PurchaseStatus;
+  itemCount: number;
+}
+
+export interface CreatePurchaseRequest {
+  supplierId: string;
+  supplierInvoice: string | null;
+  date: string | null;
+  lines: { productId: string; quantity: number; unitCost: number }[];
+  notes: string | null;
+}
+
+export type QuoteStatus = 'Open' | 'Converted' | 'Cancelled';
+
+export interface QuoteLine {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  discountAmount: number;
+  tax: TaxType;
+  lineTotal: number;
+  lineBase: number;
+  lineTax: number;
+}
+
+export interface Quote {
+  id: string;
+  number: number;
+  createdAt: string;
+  customerId: string | null;
+  customerName: string;
+  validUntil: string;
+  isExpired: boolean;
+  subtotal: number;
+  taxTotal: number;
+  discountTotal: number;
+  total: number;
+  notes: string | null;
+  status: QuoteStatus;
+  saleId: string | null;
+  saleNumber: number | null;
+  createdByName: string;
+  lines: QuoteLine[];
+  business: ReceiptBusiness;
+}
+
+export interface QuoteSummary {
+  id: string;
+  number: number;
+  createdAt: string;
+  customerName: string;
+  validUntil: string;
+  isExpired: boolean;
+  total: number;
+  status: QuoteStatus;
+}
+
+export interface QuoteUpsert {
+  customerId: string | null;
+  customerName: string | null;
+  validUntil: string;
+  lines: { productId: string; quantity: number; discountPercent: number }[];
+  notes: string | null;
+}

@@ -56,7 +56,11 @@ public enum StockMovementType
     /// <summary>salida por una venta</summary>
     Sale,
     /// <summary>entrada porque se anulo una venta</summary>
-    SaleVoid
+    SaleVoid,
+    /// <summary>entrada por una compra a un proveedor</summary>
+    Purchase,
+    /// <summary>salida porque se anulo una compra</summary>
+    PurchaseVoid
 }
 
 /// <summary>
@@ -80,6 +84,9 @@ public class StockMovement : Entity, ITenantOwned
 
     /// <summary>venta que causo el movimiento (en ventas y anulaciones)</summary>
     public Guid? SaleId { get; set; }
+
+    /// <summary>compra que causo el movimiento (en compras y sus anulaciones)</summary>
+    public Guid? PurchaseId { get; set; }
 
     public Guid? UserId { get; set; }
 

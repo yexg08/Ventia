@@ -18,6 +18,10 @@ public interface IAppDbContext
     DbSet<Sale> Sales { get; }
     DbSet<SaleLine> SaleLines { get; }
     DbSet<SalePayment> SalePayments { get; }
+    DbSet<Purchase> Purchases { get; }
+    DbSet<PurchaseLine> PurchaseLines { get; }
+    DbSet<Quote> Quotes { get; }
+    DbSet<QuoteLine> QuoteLines { get; }
 
     /// <summary>transacciones y actualizaciones atomicas (como descontar stock sin carreras)</summary>
     DatabaseFacade Database { get; }

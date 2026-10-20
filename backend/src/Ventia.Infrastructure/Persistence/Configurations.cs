@@ -203,6 +203,81 @@ public class SalePaymentConfiguration : IEntityTypeConfiguration<SalePayment>
     }
 }
 
+public class PurchaseConfiguration : IEntityTypeConfiguration<Purchase>
+{
+    public void Configure(EntityTypeBuilder<Purchase> b)
+    {
+        b.ToTable("purchases", t => t.HasCheckConstraint("ck_purchases_total_non_negative", "\"Total\" >= 0"));
+        b.Property(p => p.SupplierName).HasMaxLength(100).IsRequired();
+        b.Property(p => p.SupplierInvoice).HasMaxLength(30);
+        b.Property(p => p.Notes).HasMaxLength(300);
+        b.Property(p => p.Status).HasConversion<string>().HasMaxLength(10);
+        b.Property(p => p.VoidedBy).HasMaxLength(80);
+        b.Property(p => p.VoidReason).HasMaxLength(200);
+        b.Property(p => p.CreatedByName).HasMaxLength(80).IsRequired();
+        b.Property(p => p.Total).HasPrecision(14, 2);
+        b.HasIndex(p => new { p.TenantId, p.Number }).IsUnique().HasDatabaseName("ux_purchases_tenant_number");
+        b.HasIndex(p => new { p.TenantId, p.Date });
+        b.HasIndex(p => p.SupplierId);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+        // un proveedor con compras no se borra (se desactiva)
+        b.HasOne<Supplier>().WithMany().HasForeignKey(p => p.SupplierId).OnDelete(DeleteBehavior.Restrict);
+        b.HasMany(p => p.Lines).WithOne().HasForeignKey(l => l.PurchaseId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class PurchaseLineConfiguration : IEntityTypeConfiguration<PurchaseLine>
+{
+    public void Configure(EntityTypeBuilder<PurchaseLine> b)
+    {
+        b.ToTable("purchase_lines", t => t.HasCheckConstraint("ck_purchase_lines_quantity_positive", "\"Quantity\" > 0"));
+        b.Property(l => l.ProductName).HasMaxLength(80).IsRequired();
+        b.Property(l => l.UnitCost).HasPrecision(14, 2);
+        b.Property(l => l.LineTotal).HasPrecision(16, 2);
+        b.HasIndex(l => l.ProductId);
+        b.HasIndex(l => l.TenantId);
+        b.HasOne<Product>().WithMany().HasForeignKey(l => l.ProductId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(l => l.TenantId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class QuoteConfiguration : IEntityTypeConfiguration<Quote>
+{
+    public void Configure(EntityTypeBuilder<Quote> b)
+    {
+        b.ToTable("quotes");
+        b.Property(q => q.CustomerName).HasMaxLength(100).IsRequired();
+        b.Property(q => q.Notes).HasMaxLength(500);
+        b.Property(q => q.Status).HasConversion<string>().HasMaxLength(10);
+        b.Property(q => q.CreatedByName).HasMaxLength(80).IsRequired();
+        foreach (var money in new[] { nameof(Quote.Subtotal), nameof(Quote.TaxTotal), nameof(Quote.DiscountTotal), nameof(Quote.Total) })
+            b.Property<decimal>(money).HasPrecision(14, 2);
+        b.HasIndex(q => new { q.TenantId, q.Number }).IsUnique().HasDatabaseName("ux_quotes_tenant_number");
+        b.HasIndex(q => q.CustomerId);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(q => q.TenantId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Customer>().WithMany().HasForeignKey(q => q.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Sale>().WithMany().HasForeignKey(q => q.SaleId).OnDelete(DeleteBehavior.Restrict);
+        b.HasMany(q => q.Lines).WithOne().HasForeignKey(l => l.QuoteId).OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
+public class QuoteLineConfiguration : IEntityTypeConfiguration<QuoteLine>
+{
+    public void Configure(EntityTypeBuilder<QuoteLine> b)
+    {
+        b.ToTable("quote_lines", t => t.HasCheckConstraint("ck_quote_lines_quantity_positive", "\"Quantity\" > 0"));
+        b.Property(l => l.ProductName).HasMaxLength(80).IsRequired();
+        b.Property(l => l.Tax).HasConversion<string>().HasMaxLength(10);
+        foreach (var money in new[] { nameof(QuoteLine.UnitPrice), nameof(QuoteLine.DiscountAmount), nameof(QuoteLine.LineTotal), nameof(QuoteLine.LineBase), nameof(QuoteLine.LineTax) })
+            b.Property<decimal>(money).HasPrecision(14, 2);
+        b.Property(l => l.DiscountPercent).HasPrecision(5, 2);
+        b.HasIndex(l => l.ProductId);
+        b.HasIndex(l => l.TenantId);
+        b.HasOne<Product>().WithMany().HasForeignKey(l => l.ProductId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(l => l.TenantId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 {
     public void Configure(EntityTypeBuilder<RefreshToken> b)

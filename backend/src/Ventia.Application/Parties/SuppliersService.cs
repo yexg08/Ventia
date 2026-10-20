@@ -81,10 +81,13 @@ public class SuppliersService(IAppDbContext db) : ISuppliersService
         return ToDto(supplier);
     }
 
-    // en la fase 5 un proveedor con compras no se podra borrar (solo desactivar)
+    // un proveedor con compras no se borra (se desactiva para no perder el historial)
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
-        db.Suppliers.Remove(await FindAsync(id, ct));
+        var supplier = await FindAsync(id, ct);
+        if (await db.Purchases.AnyAsync(p => p.SupplierId == id, ct))
+            throw new BusinessRuleException($"\"{supplier.Name}\" tiene compras registradas. Desactívalo en vez de eliminarlo.");
+        db.Suppliers.Remove(supplier);
         await db.SaveChangesAsync(ct);
     }
 

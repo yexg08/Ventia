@@ -8,15 +8,11 @@ import { filter } from 'rxjs';
 import { AuthService } from '../../../core/auth/auth.service';
 import { API_BASE } from '../../../core/http/api';
 import { DIALOG_DEFAULTS } from '../../../shared/confirm';
+import { localIsoDate as today } from '../../../shared/dates';
 import { formatPrice } from '../../../shared/format';
 import { ORDER_TYPES, OrderType, SaleStatus, SaleSummary } from '../business.models';
 import { ReceiptDialog, ReceiptDialogData } from './receipt-dialog';
 
-/** fecha local de hoy en formato yyyy-mm-dd */
-function today(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-}
 
 @Component({
   selector: 'app-sales-page',

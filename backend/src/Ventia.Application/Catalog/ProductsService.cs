@@ -168,7 +168,8 @@ public class ProductsService(IAppDbContext db, IStockService stock, ICurrentUser
 
         // con movimientos reales (ajustes y despues ventas) se pierde el historial y por eso solo se desactiva
         if (await db.StockMovements.AnyAsync(m => m.ProductId == id && m.Type != StockMovementType.Initial, ct)
-            || await db.SaleLines.AnyAsync(l => l.ProductId == id, ct))
+            || await db.SaleLines.AnyAsync(l => l.ProductId == id, ct)
+            || await db.QuoteLines.AnyAsync(l => l.ProductId == id, ct))
             throw new BusinessRuleException(
                 $"\"{product.Name}\" ya tiene ventas o movimientos de inventario. Desactívalo para que no salga en el punto de venta.");
 

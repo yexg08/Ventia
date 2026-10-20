@@ -30,6 +30,10 @@ public class Tenant : Entity
     /// <summary>ultimo consecutivo de venta usado (se incrementa dentro de la transaccion de cada venta)</summary>
     public int LastSaleNumber { get; set; }
 
+    /// <summary>ultimos consecutivos de compras y cotizaciones (mismo mecanismo que las ventas)</summary>
+    public int LastPurchaseNumber { get; set; }
+    public int LastQuoteNumber { get; set; }
+
     /// <summary>
     /// un negocio suspendido por el superadmin no puede iniciar sesion y sus sesiones abiertas se cortan de inmediato
     /// no se borra nada (se puede reactivar)

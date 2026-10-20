@@ -20,7 +20,7 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
 | 2 | Catálogo e inventario: productos, movimientos de stock, stock que nunca queda negativo | Hecha |
 | 3 | Clientes y proveedores (NIT con dígito de verificación) | Hecha |
 | 4 | Punto de venta: carrito, descuentos, pago mixto, consecutivo, anulación, caja, tipo de pedido, notas y adiciones | Hecha |
-| 5 | Compras, cotizaciones, órdenes y remisiones (costo promedio) | Pendiente |
+| 5 | Compras con costo promedio y cotizaciones que se convierten en venta | Hecha |
 | 6 | Gastos y pagos a proveedores | Pendiente |
 | 7 | Reportes y exportación a CSV | Pendiente |
 | 8 | Pulido: datos de ejemplo, README bilingüe, capturas | Pendiente |
@@ -87,6 +87,14 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
   - **Anulación** solo del dueño, con motivo. Devuelve exactamente lo que la venta descontó del inventario y deja de contar en la caja.
   - El cajero solo ve sus ventas y el dueño las de todo el negocio.
   - Un cliente con ventas que pide borrar sus datos se **anonimiza** (también en los comprobantes) en vez de borrarse, para no perder el historial.
+- **Compras y cotizaciones (fase 5):**
+  - **Compras a proveedores:** suben el stock y recalculan el **costo promedio ponderado** en un solo `UPDATE` de la base, dentro de la misma transacción que el movimiento de inventario. Solo para productos que llevan inventario y proveedores activos.
+  - Anular una compra saca del inventario lo que había entrado. Si ya se vendió, no se puede.
+  - Un proveedor con compras no se borra, solo se desactiva.
+  - **Cotizaciones:** congelan los precios del día. Mientras estén vigentes se convierten en venta con esos precios, aunque el producto haya subido. Al editar una cotización se toman los precios de hoy, así se renueva una vencida.
+  - **Una cotización se convierte una sola vez:** se marca dentro de la transacción de la venta con un `UPDATE` condicional. Cinco conversiones simultáneas dejan una sola venta, y reintentar el mismo cobro devuelve la misma venta.
+  - Ventas, compras y cotizaciones comparten el mismo mecanismo de consecutivo sin saltos (`DocumentNumbers`).
+  - Cotización imprimible ("no es una factura").
 - **Seguridad:**
   - Denegar por defecto, con una prueba que recorre todos los endpoints con cada rol.
   - Bloqueo tras 5 intentos fallidos y límite de peticiones en login y registro.

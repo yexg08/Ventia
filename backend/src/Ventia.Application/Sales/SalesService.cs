@@ -6,10 +6,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Ventia.Application.Sales;
 
+/// <summary>
+/// venta que nace de otro documento (una cotizacion) con los precios de ese documento por linea
+/// y lo que hay que marcar en el mismo momento en que la venta queda registrada
+/// </summary>
+public record SaleOrigin(IReadOnlyList<decimal> UnitPrices, Func<Sale, CancellationToken, Task> OnCreatedAsync);
+
 public interface ISalesService
 {
     /// <summary>registra una venta completa (todo o nada) o devuelve la misma si la clave del cobro ya se uso</summary>
-    Task<SaleDto> CreateAsync(CreateSaleRequest request, CancellationToken ct);
+    Task<SaleDto> CreateAsync(CreateSaleRequest request, CancellationToken ct, SaleOrigin? origin = null);
     Task<SaleDto> GetAsync(Guid id, CancellationToken ct);
     Task<IReadOnlyList<SaleSummaryDto>> ListAsync(SalesQuery query, CancellationToken ct);
 
@@ -32,7 +38,7 @@ public class SalesService(
 {
     public const string FinalConsumer = "Consumidor final";
 
-    public async Task<SaleDto> CreateAsync(CreateSaleRequest request, CancellationToken ct)
+    public async Task<SaleDto> CreateAsync(CreateSaleRequest request, CancellationToken ct, SaleOrigin? origin = null)
     {
         var tenantId = tenant.RequireTenantId();
 
@@ -40,16 +46,13 @@ public class SalesService(
         if (await IdByKeyAsync(request.IdempotencyKey, ct) is { } existingId) return await GetAsync(existingId, ct);
 
         var session = await cashSessions.RequireOpenAsync(ct);
-        var (sale, products) = await BuildAsync(request, session, ct);
+        var (sale, products) = await BuildAsync(request, session, origin, ct);
 
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         try
         {
-            // el consecutivo se toma dentro de la transaccion (si la venta falla se revierte y no quedan saltos)
-            // y el UPDATE bloquea la fila del negocio asi dos ventas simultaneas nunca reciben el mismo numero
-            await db.Tenants.Where(t => t.Id == tenantId)
-                .ExecuteUpdateAsync(s => s.SetProperty(t => t.LastSaleNumber, t => t.LastSaleNumber + 1), ct);
-            sale.Number = await db.Tenants.Where(t => t.Id == tenantId).Select(t => t.LastSaleNumber).FirstAsync(ct);
+            // el consecutivo se toma dentro de la transaccion (ver DocumentNumbers)
+            sale.Number = await DocumentNumbers.NextAsync(db, tenantId, DocumentKind.Sale, ct);
 
             db.Sales.Add(sale);
             await db.SaveChangesAsync(ct);
@@ -58,6 +61,9 @@ public class SalesService(
             foreach (var group in sale.Lines.Where(l => products[l.ProductId].TracksStock).GroupBy(l => l.ProductId))
                 await stock.ChangeAsync(group.Key, -group.Sum(l => l.Quantity), StockMovementType.Sale,
                     $"Venta {sale.Number}", ct, sale.Id);
+
+            // por ejemplo marcar la cotizacion como convertida en la misma transaccion
+            if (origin is not null) await origin.OnCreatedAsync(sale, ct);
 
             await transaction.CommitAsync(ct);
         }
@@ -136,7 +142,7 @@ public class SalesService(
     }
 
     private async Task<(Sale Sale, Dictionary<Guid, Product> Products)> BuildAsync(
-        CreateSaleRequest request, CashSession session, CancellationToken ct)
+        CreateSaleRequest request, CashSession session, SaleOrigin? origin, CancellationToken ct)
     {
         var ids = request.Lines.Select(l => l.ProductId).Distinct().ToList();
         // por el filtro global un producto de otro negocio no aparece y cuenta como inexistente
@@ -171,7 +177,8 @@ public class SalesService(
         {
             var line = request.Lines[i];
             var product = products[line.ProductId];
-            var gross = product.Price * line.Quantity;
+            var unitPrice = origin?.UnitPrices[i] ?? product.Price;
+            var gross = unitPrice * line.Quantity;
             var discount = Math.Round(gross * line.DiscountPercent / 100, 2, MidpointRounding.AwayFromZero);
             var total = gross - discount;
             var split = Taxes.Split(total, product.Tax);
@@ -181,7 +188,7 @@ public class SalesService(
                 ProductId = product.Id,
                 ProductName = product.Name,
                 Quantity = line.Quantity,
-                UnitPrice = product.Price,
+                UnitPrice = unitPrice,
                 DiscountPercent = line.DiscountPercent,
                 DiscountAmount = discount,
                 Tax = product.Tax,

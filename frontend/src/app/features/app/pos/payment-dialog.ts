@@ -11,8 +11,10 @@ import { CreateSaleRequest, PAYMENT_METHODS, PaymentMethod, Sale } from '../busi
 
 export interface PaymentDialogData {
   total: number;
-  /** pedido sin los pagos (los agrega este dialogo) */
-  request: Omit<CreateSaleRequest, 'payments' | 'cashTendered' | 'idempotencyKey'>;
+  /** pedido sin los pagos (los agrega este dialogo) y al convertir una cotizacion solo el tipo de pedido */
+  request: Partial<Omit<CreateSaleRequest, 'payments' | 'cashTendered' | 'idempotencyKey'>>;
+  /** a donde se envia el cobro (por defecto registrar una venta) */
+  url?: string;
 }
 
 interface PaymentRow {
@@ -164,7 +166,7 @@ export class PaymentDialog {
 
   protected charge(): void {
     if (!this.canCharge() || this.saving()) return;
-    const body: CreateSaleRequest = {
+    const body = {
       ...this.data.request,
       idempotencyKey: this.idempotencyKey,
       payments: this.rows().map((r) => ({ method: r.method, amount: r.amount })),
@@ -172,7 +174,7 @@ export class PaymentDialog {
     };
     this.saving.set(true);
     this.error.set(null);
-    this.http.post<Sale>(`${API_BASE}/sales`, body, { context: silentErrors() }).subscribe({
+    this.http.post<Sale>(this.data.url ?? `${API_BASE}/sales`, body, { context: silentErrors() }).subscribe({
       next: (sale) => this.ref.close(sale),
       error: (e: unknown) => {
         this.error.set(getErrorMessage(e));

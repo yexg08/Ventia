@@ -12,7 +12,9 @@ namespace Ventia.Application.Inventory;
 public interface IStockService
 {
     /// <summary>suma o resta unidades (falla con 409 si el producto no lleva inventario o si quedaria negativo)</summary>
-    Task<StockMovement> ChangeAsync(Guid productId, int quantity, StockMovementType type, string? reason, CancellationToken ct, Guid? saleId = null);
+    Task<StockMovement> ChangeAsync(
+        Guid productId, int quantity, StockMovementType type, string? reason, CancellationToken ct,
+        Guid? saleId = null, Guid? purchaseId = null);
 
     /// <summary>deja el stock en lo que se conto fisicamente y registra la diferencia</summary>
     Task<StockMovement> SetCountedAsync(Guid productId, int counted, string? reason, CancellationToken ct);
@@ -20,7 +22,9 @@ public interface IStockService
 
 public class StockService(IAppDbContext db, ICurrentUser currentUser, TimeProvider timeProvider) : IStockService
 {
-    public async Task<StockMovement> ChangeAsync(Guid productId, int quantity, StockMovementType type, string? reason, CancellationToken ct, Guid? saleId = null)
+    public async Task<StockMovement> ChangeAsync(
+        Guid productId, int quantity, StockMovementType type, string? reason, CancellationToken ct,
+        Guid? saleId = null, Guid? purchaseId = null)
     {
         if (quantity == 0) throw new BusinessRuleException("La cantidad no puede ser cero.");
 
@@ -36,7 +40,7 @@ public class StockService(IAppDbContext db, ICurrentUser currentUser, TimeProvid
                     .SetProperty(p => p.UpdatedAt, now), ct);
 
             if (updated == 0) await ThrowWhyNotAsync(productId, ct);
-            return await RecordAsync(productId, quantity, type, reason, ct, saleId);
+            return await RecordAsync(productId, quantity, type, reason, ct, saleId, purchaseId);
         }, ct);
     }
 
@@ -67,7 +71,8 @@ public class StockService(IAppDbContext db, ICurrentUser currentUser, TimeProvid
     }
 
     private async Task<StockMovement> RecordAsync(
-        Guid productId, int quantity, StockMovementType type, string? reason, CancellationToken ct, Guid? saleId = null)
+        Guid productId, int quantity, StockMovementType type, string? reason, CancellationToken ct,
+        Guid? saleId = null, Guid? purchaseId = null)
     {
         var stockAfter = await db.Products.Where(p => p.Id == productId).Select(p => p.Stock).FirstAsync(ct);
         var movement = new StockMovement
@@ -78,6 +83,7 @@ public class StockService(IAppDbContext db, ICurrentUser currentUser, TimeProvid
             StockAfter = stockAfter,
             Reason = CommonValidators.Clean(reason),
             SaleId = saleId,
+            PurchaseId = purchaseId,
             UserId = currentUser.UserId,
             UserName = currentUser.Name ?? "Sistema"
         };

@@ -2,6 +2,7 @@ import { formatPrice, readableTextOn } from './format';
 import { splitTax } from './taxes';
 import { isPerson, normalizeDocument } from './documents';
 import { cartTotals, changeFor, lineAmounts } from './cart';
+import { addDays, localIsoDate } from './dates';
 import { nitCheckDigit, normalizeNit } from './nit';
 
 describe('nitCheckDigit (mismo algoritmo que Nit.cs en el backend)', () => {
@@ -107,5 +108,12 @@ describe('carrito (misma matemática que SalesService en el backend)', () => {
     expect(changeFor(44400, 50000)).toBe(5600);
     expect(changeFor(44400, 44400)).toBe(0);
     expect(changeFor(44400, 40000)).toBeNull();
+  });
+});
+
+describe('fechas locales', () => {
+  it('formatea y suma días sin moverse por la zona horaria', () => {
+    expect(localIsoDate(new Date(2026, 0, 5))).toBe('2026-01-05');
+    expect(addDays('2026-12-25', 10)).toBe('2027-01-04');
   });
 });
