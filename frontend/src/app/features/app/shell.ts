@@ -9,6 +9,8 @@ import {
   heroCog6Tooth,
   heroHome,
   heroTag,
+  heroTruck,
+  heroUserGroup,
   heroUsers,
   heroXMark,
 } from '@ng-icons/heroicons/outline';
@@ -28,7 +30,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, Logo, ThemeToggle],
-  providers: [provideIcons({ heroArrowRightOnRectangle, heroArchiveBox, heroBars3, heroCog6Tooth, heroHome, heroTag, heroUsers, heroXMark })],
+  providers: [provideIcons({ heroArrowRightOnRectangle, heroArchiveBox, heroBars3, heroCog6Tooth, heroHome, heroTag, heroTruck, heroUserGroup, heroUsers, heroXMark })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell.html',
 })
@@ -40,6 +42,8 @@ export class Shell {
   private readonly items: NavItem[] = [
     { path: '/app', label: 'Inicio', icon: 'heroHome', exact: true, ownerOnly: false },
     { path: '/app/productos', label: 'Productos', icon: 'heroArchiveBox', exact: false, ownerOnly: false },
+    { path: '/app/clientes', label: 'Clientes', icon: 'heroUserGroup', exact: false, ownerOnly: false },
+    { path: '/app/proveedores', label: 'Proveedores', icon: 'heroTruck', exact: false, ownerOnly: true },
     { path: '/app/categorias', label: 'Categorías', icon: 'heroTag', exact: false, ownerOnly: false },
     { path: '/app/usuarios', label: 'Usuarios', icon: 'heroUsers', exact: false, ownerOnly: true },
     { path: '/app/configuracion', label: 'Configuración', icon: 'heroCog6Tooth', exact: false, ownerOnly: true },

@@ -18,7 +18,7 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
 |---|---|---|
 | 1 | Base: registro de negocios, login, roles dueño y cajero, cuentas de cajeros, configuración del negocio, categorías, superadmin, Docker y CI | Hecha |
 | 2 | Catálogo e inventario: productos, movimientos de stock, stock que nunca queda negativo | Hecha |
-| 3 | Clientes y proveedores (NIT con dígito de verificación) | Pendiente |
+| 3 | Clientes y proveedores (NIT con dígito de verificación) | Hecha |
 | 4 | Punto de venta: carrito, descuentos, pago mixto, consecutivo, anulación, caja, tipo de pedido, notas y adiciones | Pendiente |
 | 5 | Compras, cotizaciones, órdenes y remisiones (costo promedio) | Pendiente |
 | 6 | Gastos y pagos a proveedores | Pendiente |
@@ -68,6 +68,13 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
   - **El stock nunca queda negativo, ni con salidas simultáneas:** el descuento es un solo `UPDATE` con la condición adentro, y una prueba lanza 8 salidas a la vez sobre un stock de 5 y solo entran 5. Además, una restricción `CHECK` de PostgreSQL rechaza el stock negativo aunque el código se equivocara.
   - El stock siempre es igual a la suma de sus movimientos (con prueba).
   - El mismo servicio de inventario lo usarán las ventas de la fase 4, dentro de la misma transacción.
+- **Clientes y proveedores (fase 3):**
+  - Documento de identidad (cédula, cédula de extranjería, NIT o pasaporte) validado y normalizado igual en el backend y en el navegador. El NIT se valida con el dígito de verificación.
+  - El documento es único por negocio (también protegido en la base), pero dos negocios pueden tener el mismo cliente.
+  - **Autorización de datos (Ley 1581):** es obligatoria para las personas y queda la fecha en que se dio. Las empresas con NIT no la necesitan.
+  - El cliente puede pedir que se borren sus datos (derecho de supresión): el dueño lo elimina.
+  - Los cajeros registran y editan clientes desde la caja. Solo el dueño los borra y gestiona los proveedores.
+  - Búsqueda por nombre, documento o celular.
 - **Seguridad:**
   - Denegar por defecto, con una prueba que recorre todos los endpoints con cada rol.
   - Bloqueo tras 5 intentos fallidos y límite de peticiones en login y registro.
@@ -139,14 +146,14 @@ GitHub Actions corre en cada push:
 backend/
   src/
     Ventia.Domain/          Entidades (Tenant, Category, Product, StockMovement…), impuestos e ITenantOwned
-    Ventia.Application/     Casos de uso, DTOs, validaciones, NIT, servicio de inventario
+    Ventia.Application/     Casos de uso, DTOs, validaciones, NIT y documentos, servicio de inventario
     Ventia.Infrastructure/  EF Core + Identity, filtro e interceptor de negocio, auth, cuentas, migraciones
     Ventia.Api/             Controladores, políticas, validación de sesión, cabeceras, límites, frontend compilado
   tests/Ventia.Tests/       Integración contra PostgreSQL real + unitarias
 frontend/
   src/app/
     core/                   Sesión, interceptores, guards, tema, avisos
-    shared/                 Logo, diálogo de confirmación, formatos, NIT, desglose de impuestos
+    shared/                 Logo, diálogo de confirmación, formatos, NIT y documentos, desglose de impuestos
     features/               landing, auth, app (panel del negocio), admin
 ```
 

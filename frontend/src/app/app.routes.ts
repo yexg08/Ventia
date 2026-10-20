@@ -13,6 +13,8 @@ export const routes: Routes = [
     children: [
       { path: '', title: 'Inicio · Ventia', loadComponent: () => import('./features/app/home').then((m) => m.Home) },
       { path: 'productos', title: 'Productos · Ventia', loadComponent: () => import('./features/app/products/products-page').then((m) => m.ProductsPage) },
+      { path: 'clientes', title: 'Clientes · Ventia', loadComponent: () => import('./features/app/parties/customers-page').then((m) => m.CustomersPage) },
+      { path: 'proveedores', title: 'Proveedores · Ventia', canActivate: [ownerGuard], loadComponent: () => import('./features/app/parties/suppliers-page').then((m) => m.SuppliersPage) },
       { path: 'categorias', title: 'Categorías · Ventia', loadComponent: () => import('./features/app/categories/categories-page').then((m) => m.CategoriesPage) },
       { path: 'usuarios', title: 'Usuarios · Ventia', canActivate: [ownerGuard], loadComponent: () => import('./features/app/users/users-page').then((m) => m.UsersPage) },
       { path: 'configuracion', title: 'Configuración · Ventia', canActivate: [ownerGuard], loadComponent: () => import('./features/app/settings/settings').then((m) => m.Settings) },

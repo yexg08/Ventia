@@ -78,6 +78,46 @@ public class StockMovementConfiguration : IEntityTypeConfiguration<StockMovement
     }
 }
 
+public class CustomerConfiguration : IEntityTypeConfiguration<Customer>
+{
+    public const string UniqueDocumentIndex = "ux_customers_tenant_document";
+
+    public void Configure(EntityTypeBuilder<Customer> b)
+    {
+        b.ToTable("customers");
+        b.Property(c => c.DocumentType).HasConversion<string>().HasMaxLength(5);
+        b.Property(c => c.DocumentNumber).HasMaxLength(20).IsRequired();
+        b.Property(c => c.Name).HasMaxLength(100).IsRequired();
+        b.Property(c => c.Phone).HasMaxLength(15);
+        b.Property(c => c.Email).HasMaxLength(256);
+        b.Property(c => c.Address).HasMaxLength(120);
+        b.Property(c => c.Notes).HasMaxLength(500);
+        b.HasIndex(c => new { c.TenantId, c.DocumentType, c.DocumentNumber }).IsUnique().HasDatabaseName(UniqueDocumentIndex);
+        b.HasIndex(c => new { c.TenantId, c.Name });
+        b.HasOne<Tenant>().WithMany().HasForeignKey(c => c.TenantId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
+{
+    public const string UniqueDocumentIndex = "ux_suppliers_tenant_document";
+
+    public void Configure(EntityTypeBuilder<Supplier> b)
+    {
+        b.ToTable("suppliers");
+        b.Property(s => s.DocumentType).HasConversion<string>().HasMaxLength(5);
+        b.Property(s => s.DocumentNumber).HasMaxLength(20).IsRequired();
+        b.Property(s => s.Name).HasMaxLength(100).IsRequired();
+        b.Property(s => s.ContactName).HasMaxLength(80);
+        b.Property(s => s.Phone).HasMaxLength(15);
+        b.Property(s => s.Email).HasMaxLength(256);
+        b.Property(s => s.Address).HasMaxLength(120);
+        b.Property(s => s.Notes).HasMaxLength(500);
+        b.HasIndex(s => new { s.TenantId, s.DocumentType, s.DocumentNumber }).IsUnique().HasDatabaseName(UniqueDocumentIndex);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 {
     public void Configure(EntityTypeBuilder<RefreshToken> b)

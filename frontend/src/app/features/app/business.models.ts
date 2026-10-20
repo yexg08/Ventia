@@ -111,3 +111,52 @@ export interface StockMovement {
   reason: string | null;
   userName: string;
 }
+
+export type DocumentType = 'CC' | 'CE' | 'NIT' | 'PP';
+
+export const DOCUMENT_TYPES: { value: DocumentType; label: string }[] = [
+  { value: 'CC', label: 'Cédula de ciudadanía' },
+  { value: 'NIT', label: 'NIT' },
+  { value: 'CE', label: 'Cédula de extranjería' },
+  { value: 'PP', label: 'Pasaporte' },
+];
+
+export interface Customer {
+  id: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  notes: string | null;
+  /** cuando autorizo el tratamiento de sus datos (Ley 1581) */
+  dataConsentAt: string | null;
+  createdAt: string;
+}
+
+export interface CustomerUpsert {
+  documentType: DocumentType;
+  documentNumber: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  notes: string | null;
+  dataConsent: boolean;
+}
+
+export interface Supplier {
+  id: string;
+  documentType: DocumentType;
+  documentNumber: string;
+  name: string;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  address: string | null;
+  notes: string | null;
+  isActive: boolean;
+}
+
+export type SupplierUpsert = Omit<Supplier, 'id'>;

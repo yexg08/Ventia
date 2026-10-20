@@ -16,6 +16,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<Customer> Customers => Set<Customer>();
+    public DbSet<Supplier> Suppliers => Set<Supplier>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     /// <summary>
@@ -26,7 +28,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     {
         [CategoryConfiguration.UniqueNameIndex] = ("Name", "Ya tienes una categoría con ese nombre."),
         [ProductConfiguration.UniqueCodeIndex] = ("Code", "Ya tienes un producto con ese código."),
-        [ProductConfiguration.UniqueBarcodeIndex] = ("Barcode", "Ya tienes un producto con ese código de barras.")
+        [ProductConfiguration.UniqueBarcodeIndex] = ("Barcode", "Ya tienes un producto con ese código de barras."),
+        [CustomerConfiguration.UniqueDocumentIndex] = ("DocumentNumber", "Ya tienes un cliente con ese documento."),
+        [SupplierConfiguration.UniqueDocumentIndex] = ("DocumentNumber", "Ya tienes un proveedor con ese documento.")
     };
 
     /// <summary>

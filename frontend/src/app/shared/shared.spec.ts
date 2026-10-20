@@ -1,5 +1,6 @@
 import { formatPrice, readableTextOn } from './format';
 import { splitTax } from './taxes';
+import { isPerson, normalizeDocument } from './documents';
 import { nitCheckDigit, normalizeNit } from './nit';
 
 describe('nitCheckDigit (mismo algoritmo que Nit.cs en el backend)', () => {
@@ -52,5 +53,30 @@ describe('splitTax (misma regla que Taxes.Split en el backend)', () => {
     [2500, 'None', 2500, 0],
   ] as const)('%i con %s', (gross, tax, base, taxAmount) => {
     expect(splitTax(gross, tax)).toEqual({ base, tax: taxAmount });
+  });
+});
+
+describe('normalizeDocument (misma regla que Documents.cs en el backend)', () => {
+  it.each([
+    ['CC', '1.053.123.456', '1053123456'],
+    ['CE', 'ab12345', 'AB12345'],
+    ['PP', 'pa123456', 'PA123456'],
+    ['NIT', '800.197.268-4', '800197268-4'],
+  ] as const)('%s %s → %s', (type, input, expected) => {
+    expect(normalizeDocument(type, input)).toBe(expected);
+  });
+
+  it.each([
+    ['CC', '12'],
+    ['CC', '12345678901'],
+    ['CE', 'A1'],
+    ['NIT', '800197268-5'],
+  ] as const)('rechaza %s %s', (type, input) => {
+    expect(normalizeDocument(type, input)).toBeNull();
+  });
+
+  it('solo las personas necesitan autorización de datos', () => {
+    expect(isPerson('CC')).toBe(true);
+    expect(isPerson('NIT')).toBe(false);
   });
 });
