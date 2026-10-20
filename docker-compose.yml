@@ -40,6 +40,8 @@ services:
       ConnectionStrings__Default: Host=postgres;Port=5432;Database=ventia;Username=ventia;Password=ventia_dev_password
       Jwt__Key: ${JWT_KEY:-}
       Seed__SuperAdminPassword: ${SUPERADMIN_PASSWORD:-}
+      Seed__DemoData: ${DEMO_DATA:-false}
+      Seed__DemoPassword: ${DEMO_PASSWORD:-}
       # el contenedor se prueba por http en localhost (en produccion va detras de https)
       Https__Redirect: "false"
 

@@ -11,6 +11,7 @@ namespace Ventia.Infrastructure.Persistence;
 /// <summary>
 /// al arrancar aplica las migraciones y crea los roles y la cuenta de superadmin
 /// la contrasena del superadmin se lee de la configuracion (Seed SuperAdminPassword en user-secrets)
+/// si se activa Seed DemoData tambien carga el negocio de ejemplo (ver DemoSeeder)
 /// </summary>
 public static class DbSeeder
 {
@@ -30,6 +31,12 @@ public static class DbSeeder
         }
 
         var config = provider.GetRequiredService<IConfiguration>();
+        await SeedSuperAdminAsync(provider, config, logger);
+        await SeedDemoDataAsync(services, config, logger);
+    }
+
+    private static async Task SeedSuperAdminAsync(IServiceProvider provider, IConfiguration config, ILogger logger)
+    {
         var email = config["Seed:SuperAdminEmail"];
         var password = config["Seed:SuperAdminPassword"];
         if (string.IsNullOrWhiteSpace(email)) return;
@@ -60,5 +67,27 @@ public static class DbSeeder
 
         await userManager.AddToRoleAsync(admin, Roles.SuperAdmin);
         logger.LogInformation("Superadmin {Email} creado.", email);
+    }
+
+    // opcional (solo si se activa la opcion DemoData de Seed) y si falla no impide que la API arranque
+    private static async Task SeedDemoDataAsync(IServiceProvider services, IConfiguration config, ILogger logger)
+    {
+        if (!config.GetValue<bool>("Seed:DemoData")) return;
+
+        var password = config["Seed:DemoPassword"];
+        if (string.IsNullOrWhiteSpace(password))
+        {
+            logger.LogWarning("No se cargaron los datos de ejemplo: falta Seed:DemoPassword (ver README).");
+            return;
+        }
+
+        try
+        {
+            await DemoSeeder.SeedAsync(services, password);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "No se pudieron cargar los datos de ejemplo.");
+        }
     }
 }

@@ -1,197 +1,305 @@
 # Ventia
 
 [![CI](https://github.com/yexg08/Ventia/actions/workflows/ci.yml/badge.svg)](https://github.com/yexg08/Ventia/actions/workflows/ci.yml)
-[![Licencia: MIT](https://img.shields.io/badge/licencia-MIT-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512bd4)
 ![Angular 22](https://img.shields.io/badge/Angular-22-dd0031)
 ![PostgreSQL 17](https://img.shields.io/badge/PostgreSQL-17-336791)
 
-**Ventas e inventario multi-negocio para comida rápida.** Ventia es una demo de AndesAiSolutions: un punto de venta
-con inventario y reportes, donde cada negocio tiene su propio panel y sus datos quedan aislados de los demás.
+English · **[Español](README.es.md)**
 
-> **Es una demo.** Los comprobantes no tienen validez fiscal ante la DIAN (no hay facturación electrónica, nómina
-> electrónica ni documentos soporte) y no se procesan pagos reales: efectivo, tarjeta y transferencia solo se registran.
+**Point of sale, inventory and reports for fast-food businesses.** Ventia is multi-tenant: every business gets its own
+dashboard (owner and cashiers), and its data is completely isolated from every other business.
 
-## Estado
+> **A demo by AndesAiSolutions.** The UI is in Spanish (Colombia). Receipts have no tax validity before the DIAN, the
+> Colombian tax authority: there is no electronic invoicing, electronic payroll or supporting documents. No real
+> payments are processed: cash, card and bank transfer are only recorded.
 
-| Fase | Contenido | Estado |
-|---|---|---|
-| 1 | Base: registro de negocios, login, roles dueño y cajero, cuentas de cajeros, configuración del negocio, categorías, superadmin, Docker y CI | Hecha |
-| 2 | Catálogo e inventario: productos, movimientos de stock, stock que nunca queda negativo | Hecha |
-| 3 | Clientes y proveedores (NIT con dígito de verificación) | Hecha |
-| 4 | Punto de venta: carrito, descuentos, pago mixto, consecutivo, anulación, caja, tipo de pedido, notas y adiciones | Hecha |
-| 5 | Compras con costo promedio y cotizaciones que se convierten en venta | Hecha |
-| 6 | Gastos y pagos a proveedores | Hecha |
-| 7 | Reportes y exportación a CSV | Hecha |
-| 8 | Pulido: datos de ejemplo, README bilingüe, capturas | Pendiente |
-| 9 | Diseño final: moderno, minimalista y con animaciones suaves | Pendiente |
+## Screenshots
 
-## Stack
-
-| Capa | Tecnología |
+| | |
 |---|---|
-| Backend | .NET 10, ASP.NET Core, EF Core 10, ASP.NET Identity, FluentValidation |
-| Base de datos | PostgreSQL 17 |
-| Frontend | Angular 22 (zoneless, standalone, signals, `httpResource`), Tailwind CSS v4, Angular CDK, Heroicons |
-| Pruebas | xUnit + `WebApplicationFactory` + **Testcontainers** (PostgreSQL real) · Vitest |
-| Infraestructura | Docker (imagen única: la API sirve el frontend compilado) · GitHub Actions · Dependabot |
+| ![Point of sale](docs/screenshots/pos.png) | ![Receipt](docs/screenshots/receipt.png) |
+| **Point of sale**: menu by category, order type, notes, add-ons and discounts | **Printable receipt** with the consumption tax broken down |
+| ![Reports](docs/screenshots/reports.png) | ![Closing the register](docs/screenshots/close-cash.png) |
+| **Reports**: real profit, sales by day and peak hours | **Closing the register**, with expected cash and the difference |
+| ![Purchase](docs/screenshots/purchase.png) | ![Landing page](docs/screenshots/landing.png) |
+| **Purchase on credit** with its partial payments | **Landing page**, light and dark themes |
 
-## Lo que ya hace
+## What is interesting about it
 
-- **Multi-negocio con aislamiento en tres barreras**, la misma base probada en Flow:
-  - El negocio de la sesión sale de la base de datos en cada petición (`SessionValidator`), nunca del token ni del cliente.
-  - Un filtro global de EF Core limita toda entidad `ITenantOwned` al negocio de la sesión. Pedir por id un dato de otro negocio da 404.
-  - Un interceptor de escritura rechaza crear, modificar o borrar datos de otro negocio.
-- **Roles:**
-  - **Dueño:** administra todo su negocio.
-  - **Cajero:** vende y ve el menú, pero no ve costos ni cambia la configuración.
-  - **Superadmin:** ve todos los negocios y puede suspenderlos.
-- **Cuentas de cajeros:**
-  - El dueño las crea con una contraseña temporal que se ve una sola vez y vence a los 7 días.
-  - En el primer ingreso es obligatorio cambiarla, y eso lo aplica la API, no solo la pantalla.
-  - El dueño puede generar otra contraseña o desactivar la cuenta, y en ambos casos las sesiones del cajero se cortan al instante.
-  - Las cuentas no se borran, porque las ventas quedarán a nombre de quien las hizo.
-- **Configuración del negocio:**
-  - NIT validado con el algoritmo de la DIAN, en el backend y en el navegador.
-  - Dirección, teléfono, zona horaria y mensaje al pie del comprobante.
-  - Impuesto por defecto: INC 8 % (comidas rápidas), IVA 19 %, IVA 5 % o sin impuesto.
-- **Categorías del menú**, con orden, activas o inactivas y nombres únicos sin importar mayúsculas (también protegido en la base).
-- **Productos (fase 2):**
-  - Precio con el impuesto incluido. La base y el impuesto se separan con una sola regla de redondeo, y base más impuesto siempre da el precio cobrado (con pruebas).
-  - Costo y margen sobre el precio sin impuesto, que **solo ve el dueño**. El servidor no los envía al cajero, no basta con ocultar la columna.
-  - Código y código de barras opcionales, únicos por negocio (también protegidos en la base).
-  - Búsqueda, filtro por categoría y filtro de stock bajo.
-  - Un producto con movimientos no se borra, solo se desactiva. Una categoría con productos tampoco se borra.
-- **Inventario (fase 2):**
-  - Cada producto decide si lleva inventario: una gaseosa sí, una hamburguesa preparada no.
-  - Entradas, salidas y conteos físicos con motivo. Cada cambio queda como movimiento con quién lo hizo y el stock que quedó.
-  - **El stock nunca queda negativo, ni con salidas simultáneas:** el descuento es un solo `UPDATE` con la condición adentro, y una prueba lanza 8 salidas a la vez sobre un stock de 5 y solo entran 5. Además, una restricción `CHECK` de PostgreSQL rechaza el stock negativo aunque el código se equivocara.
-  - El stock siempre es igual a la suma de sus movimientos (con prueba).
-  - El mismo servicio de inventario lo usarán las ventas de la fase 4, dentro de la misma transacción.
-- **Clientes y proveedores (fase 3):**
-  - Documento de identidad (cédula, cédula de extranjería, NIT o pasaporte) validado y normalizado igual en el backend y en el navegador. El NIT se valida con el dígito de verificación.
-  - El documento es único por negocio (también protegido en la base), pero dos negocios pueden tener el mismo cliente.
-  - **Autorización de datos (Ley 1581):** es obligatoria para las personas y queda la fecha en que se dio. Las empresas con NIT no la necesitan.
-  - El cliente puede pedir que se borren sus datos (derecho de supresión): el dueño lo elimina.
-  - Los cajeros registran y editan clientes desde la caja. Solo el dueño los borra y gestiona los proveedores.
-  - Búsqueda por nombre, documento o celular.
-- **Punto de venta (fase 4):**
-  - **Turnos de caja:** cada cuenta abre su caja con una base y la cierra contando el efectivo. El sistema calcula lo esperado (base más efectivo de las ventas no anuladas, menos las salidas de caja) y la diferencia. Una cuenta no puede tener dos cajas abiertas, ni siquiera con dos aperturas simultáneas (índice único parcial).
-  - **Pantalla de caja:** productos por categoría, buscador que acepta código de barras con Enter, tipo de pedido (mesa, para llevar o domicilio), cliente o consumidor final, notas por línea ("sin cebolla"), descuento por línea y adiciones colgadas de un producto.
-  - **Cobro:** efectivo, tarjeta, transferencia o mixto, con el cambio calculado. Solo se registra cómo se pagó; no se procesan pagos reales.
-  - **El servidor manda:** el navegador solo envía qué productos y cuántos. Precios, impuestos, descuentos y totales los calcula el servidor (una prueba manda un precio falso y se ignora).
-  - **Todo o nada:** la venta, sus pagos y el descuento de inventario van en una sola transacción. Si un producto no alcanza, no queda nada.
-  - **Consecutivo sin saltos ni repetidos:** el número se toma dentro de la transacción, bloqueando la fila del negocio. Una prueba lanza 10 ventas a la vez y reciben del 1 al 10. Una venta fallida no consume número.
-  - **Un cobro, una venta:** cada cobro lleva una clave de idempotencia. Un doble clic o cinco reintentos simultáneos con la misma clave devuelven la misma venta, y el stock se descuenta una sola vez.
-  - **Comprobante imprimible** con la leyenda "sin validez fiscal" y los impuestos agrupados (INC o IVA).
-  - **Anulación** solo del dueño, con motivo. Devuelve exactamente lo que la venta descontó del inventario y deja de contar en la caja.
-  - El cajero solo ve sus ventas y el dueño las de todo el negocio.
-  - Un cliente con ventas que pide borrar sus datos se **anonimiza** (también en los comprobantes) en vez de borrarse, para no perder el historial.
-- **Compras y cotizaciones (fase 5):**
-  - **Compras a proveedores:** suben el stock y recalculan el **costo promedio ponderado** en un solo `UPDATE` de la base, dentro de la misma transacción que el movimiento de inventario. Solo para productos que llevan inventario y proveedores activos.
-  - Anular una compra saca del inventario lo que había entrado. Si ya se vendió, no se puede.
-  - Un proveedor con compras no se borra, solo se desactiva.
-  - **Cotizaciones:** congelan los precios del día. Mientras estén vigentes se convierten en venta con esos precios, aunque el producto haya subido. Al editar una cotización se toman los precios de hoy, así se renueva una vencida.
-  - **Una cotización se convierte una sola vez:** se marca dentro de la transacción de la venta con un `UPDATE` condicional. Cinco conversiones simultáneas dejan una sola venta, y reintentar el mismo cobro devuelve la misma venta.
-  - Ventas, compras y cotizaciones comparten el mismo mecanismo de consecutivo sin saltos (`DocumentNumbers`).
-  - Cotización imprimible ("no es una factura").
-- **Gastos y pagos a proveedores (fase 6):**
-  - **Gastos** por categoría (arriendo, servicios, nómina, insumos…) con su medio de pago. Solo el dueño los anula, con motivo.
-  - **Salidas de caja:** un gasto o un pago en efectivo puede salir de la caja abierta. Se resta del efectivo esperado al cerrar el turno, y si se anula vuelve a contar. El cajero solo puede registrar salidas de su propia caja (y solo ve las suyas).
-  - **Compras de contado o a crédito.** Las de crédito quedan en **cuentas por pagar**, agrupadas por proveedor y con los días que llevan abiertas.
-  - **Abonos:** una compra se paga en uno o varios pagos. **Nunca se paga más que el saldo, ni con pagos simultáneos:** el abono es un solo `UPDATE` con la condición adentro (una prueba lanza 5 abonos del 40 % a la vez y solo entran 2), y una restricción `CHECK` de la base es la última barrera.
-  - Anular un pago devuelve el saldo una sola vez aunque se anule varias veces al mismo tiempo. Una compra con pagos no se anula hasta anular sus pagos.
-- **Reportes (fase 7, solo el dueño):**
-  - Total vendido con la variación frente al periodo anterior de la misma duración, número de ventas, ticket promedio y descuentos.
-  - **Utilidad:** ventas sin impuestos − costo de lo vendido = utilidad bruta − gastos = utilidad neta. Las compras de mercancía no se restan, porque entran al inventario y cuentan como costo cuando se venden.
-  - **El costo queda congelado en cada venta:** se guarda el costo promedio del momento, así una compra posterior que lo cambie no altera la utilidad de ventas pasadas (con prueba).
-  - Ventas por día (incluye los días sin ventas), horas pico, medios de pago, tipo de pedido, productos más vendidos con su utilidad, impuestos cobrados (INC e IVA), vendedores, diferencias al cerrar caja por cajero, gastos por categoría y valor del inventario al costo.
-  - Los días se cuentan en la zona horaria del negocio. Máximo un año por consulta.
-- **Exportación a CSV:** ventas, productos vendidos, gastos, compras e inventario.
-  - Pensados para abrir con doble clic en Excel en español: separador punto y coma, coma decimal y UTF-8 con BOM (las tildes salen bien).
-  - **Protegidos contra inyección de fórmulas:** un nombre o una descripción que empiece por `=`, `+`, `-` o `@` se exporta como texto, para que Excel no lo ejecute (con prueba).
-- **Seguridad:**
-  - Denegar por defecto, con una prueba que recorre todos los endpoints con cada rol.
-  - Bloqueo tras 5 intentos fallidos y límite de peticiones en login y registro.
-  - Mismo mensaje para un correo inexistente que para una contraseña incorrecta.
-  - JWT de 15 minutos en memoria y refresh token rotado en una cookie `httpOnly`, `Secure` y `SameSite=Strict`.
-  - Cabeceras de seguridad, con una política de contenido que en el frontend autoriza solo sus propios scripts por hash.
+- **Tenant isolation enforced in three layers**, with tests that fail if any of them is removed.
+- **The server owns every sale:** the browser only sends which products and how many. Prices, taxes, discounts and
+  totals are computed on the server.
+- **Nothing breaks under concurrent requests,** and each case has a test that fires the requests at the same time:
+  - stock never goes negative;
+  - document numbers have no gaps or duplicates;
+  - a double click on "charge" creates a single sale;
+  - a quote becomes a sale only once;
+  - payments to a supplier never exceed the balance.
 
-## Probarlo con Docker
+  All of it is solved with conditional `UPDATE`s and unique indexes in PostgreSQL, not with in-memory checks.
+- **Real profit:** the average cost is frozen on every sale, so a later purchase does not change the profit of past
+  sales.
+- **Cashiers never see costs or margins:** the server does not send them. Hiding the column is not enough.
+- **Tests against a real PostgreSQL** (Testcontainers), plus mutation testing: a protection is removed on purpose to
+  confirm that some test fails.
 
-Solo necesitas [Docker Desktop](https://www.docker.com/products/docker-desktop/).
+## Try it with Docker
+
+You only need [Docker Desktop](https://www.docker.com/products/docker-desktop/). One command starts the database, the
+API and the frontend, with no .NET or Node installed.
 
 ```bash
-# 1. crea tu archivo .env con una clave aleatoria (no se sube a Git)
+# 1. Create your .env file with random secrets (it is not committed)
 cat > .env <<EOF
 JWT_KEY=$(openssl rand -hex 32)
 SUPERADMIN_PASSWORD=Admin1$(openssl rand -hex 6)
+DEMO_DATA=true
+DEMO_PASSWORD=Demo1$(openssl rand -hex 6)
 EOF
 
-# 2. construye y arranca todo
+# 2. Build and start everything
 docker compose --profile app up --build
 ```
 
-Abre http://localhost:8081 (usa Chrome, Edge o Firefox) y crea tu negocio. El superadmin es `admin@ventia.local`
-con la contraseña de tu `.env`. Para empezar de cero: `docker compose --profile app down -v`.
+<details>
+<summary>On PowerShell (Windows), step 1 looks like this</summary>
 
-## Desarrollo local
+```powershell
+function New-Secret { $b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); -join ($b | ForEach-Object { $_.ToString('x2') }) }
+@"
+JWT_KEY=$(New-Secret)
+SUPERADMIN_PASSWORD=Admin1$((New-Secret).Substring(0, 12))
+DEMO_DATA=true
+DEMO_PASSWORD=Demo1$((New-Secret).Substring(0, 12))
+"@ | Set-Content .env -Encoding ascii
+```
 
-Requisitos: [.NET 10 SDK](https://dotnet.microsoft.com/download), [Node.js](https://nodejs.org/) 24+ y
+</details>
+
+Open http://localhost:8081. Use Chrome, Edge or Firefox: Safari does not store `Secure` cookies over http. The
+passwords are in your `.env` file.
+
+With `DEMO_DATA=true`, **Hamburguesas La Cumbre** is loaded: a burger place in Manizales with 30 days of history.
+- about 700 sales;
+- weekly drink purchases, two of them on credit;
+- the month's expenses and register closings;
+- three quotes.
+
+Dates are computed from today, so the reports are never empty, and the owner finds the register already open, ready to
+sell.
+
+| Account | Email | Password |
+|---|---|---|
+| Owner | `dueno@ventia.demo` | `DEMO_PASSWORD` |
+| Cashier | `cajera@ventia.demo` | `DEMO_PASSWORD` |
+| Platform superadmin | `admin@ventia.local` | `SUPERADMIN_PASSWORD` |
+
+To start over: `docker compose --profile app down -v`.
+
+## Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | .NET 10, ASP.NET Core, EF Core 10, ASP.NET Identity, FluentValidation |
+| Database | PostgreSQL 17 |
+| Frontend | Angular 22 (zoneless, standalone, signals, `httpResource`), Tailwind CSS v4, Angular CDK, Heroicons |
+| Tests | xUnit + `WebApplicationFactory` + **Testcontainers** (real PostgreSQL) · Vitest |
+| Infrastructure | Docker (single image: the API serves the compiled frontend) · GitHub Actions · Dependabot |
+
+```mermaid
+flowchart LR
+    Browser["Angular SPA"] -- "/api (JSON + JWT)" --> Api["ASP.NET Core API"]
+    Api --> App["Application<br/>use cases, validation"]
+    App --> Domain["Domain<br/>entities, taxes"]
+    Api --> Infra["Infrastructure<br/>EF Core, Identity, auth"]
+    Infra --> App
+    Infra --> Db[("PostgreSQL 17")]
+```
+
+Dependencies point inward:
+- `Domain` knows nothing.
+- `Application` only knows `Domain`, and talks to the outside through interfaces such as `IAppDbContext`.
+- `Infrastructure` implements those interfaces.
+- `Api` wires everything together.
+
+## Status
+
+| Phase | Content | Status |
+|---|---|---|
+| 1 | Foundation: business sign-up, login, owner and cashier roles, cashier accounts, settings, categories, superadmin, Docker and CI | Done |
+| 2 | Catalog and inventory: products, stock movements, stock that never goes negative | Done |
+| 3 | Customers and suppliers (Colombian tax ID with check digit) | Done |
+| 4 | Point of sale: cart, discounts, split payments, document numbers, voiding, register shifts, order types, notes and add-ons | Done |
+| 5 | Purchases with average cost, and quotes that become sales | Done |
+| 6 | Expenses, cash taken from the register, and accounts payable | Done |
+| 7 | Reports and CSV export | Done |
+| 8 | Polish: sample data, bilingual README, screenshots | Done |
+| 9 | Final design: modern, minimal, with smooth animations | Next |
+
+## Features
+
+### Multi-tenancy and roles
+
+- **Isolation in three barriers:**
+  - The session's business is read from the database on every request (`SessionValidator`), never from the token or
+    the client.
+  - An EF Core global query filter limits every `ITenantOwned` entity to the session's business. Asking for another
+    business's record by id returns 404.
+  - A write interceptor rejects creating, changing or deleting another business's data.
+- **Roles:**
+  - **Owner:** manages the whole business.
+  - **Cashier:** sells, registers customers and takes cash out of their own register. Cannot see costs, purchases,
+    reports or settings.
+  - **Superadmin:** sees every business and can suspend them.
+- **Cashier accounts:**
+  - The owner creates them with a temporary password that is shown once and expires after 7 days.
+  - Changing it on first login is mandatory, enforced by the API and not only by the UI.
+  - If the owner resets the password or deactivates the account, the cashier's sessions end immediately.
+- **Business settings:**
+  - Tax ID validated with the DIAN algorithm, both on the backend and in the browser.
+  - Address, time zone and receipt footer.
+  - Default tax: 8 % consumption tax (fast food), 19 % VAT, 5 % VAT, or none.
+
+### Catalog and inventory
+
+- Prices include tax. The base and the tax are split with a single rounding rule, and base plus tax always equals the
+  price charged.
+- Each product decides whether it tracks stock: a soda does, a freshly made burger does not.
+- Stock in, stock out and physical counts, each with a reason. Every change is a movement recording who made it and the
+  resulting stock.
+- **Stock never goes negative, even with concurrent sales.** Each decrement is a single `UPDATE` with the condition
+  inside; a test fires 8 withdrawals at once against a stock of 5, and only 5 succeed. A `CHECK` constraint is the last
+  barrier.
+- A product with movements, or a category with products, is never deleted, only deactivated.
+
+### Customers and suppliers
+
+- ID documents (national ID, foreign ID, tax ID or passport) are validated the same way on the backend and in the
+  browser. Tax IDs are checked with their verification digit.
+- **Colombian data protection law (Ley 1581):**
+  - Consent to process personal data is mandatory for individuals, and its date is stored.
+  - A customer can ask to have their data deleted. If they already have sales, they are **anonymized**, receipts
+    included, instead of deleted.
+
+### Point of sale
+
+- **Register shifts:** each account opens its register with a starting float and closes it by counting the cash. The
+  system computes the expected amount and the difference: the float, plus cash from sales that were not voided, minus
+  cash taken out.
+- **Sales screen:**
+  - products by category, and a search box that accepts a barcode scanner with Enter;
+  - order type: dine-in, take-away or delivery;
+  - a registered customer, or an anonymous one;
+  - per-line notes ("no onion"), discounts, and add-ons attached to a product.
+- **Payment** in cash, card, bank transfer or a mix, with the change computed.
+- **All or nothing:** the sale, its payments and the stock decrement run in a single transaction.
+- **Gap-free document numbers:** the number is taken inside the transaction, locking the business row. A test fires 10
+  sales at once, and they get numbers 1 to 10.
+- **One charge, one sale:** every charge carries an idempotency key. Five simultaneous retries with the same key return
+  the same sale.
+- **Printable receipt** stating "no tax validity", with taxes grouped.
+- **Voiding** is owner-only and requires a reason. It returns exactly what the sale took from stock.
+
+### Purchases, quotes and expenses
+
+- **Purchases from suppliers** increase stock and recompute the **weighted average cost** in a single `UPDATE`, inside
+  the same transaction. They can be paid on the spot (even with cash from the register) or on credit.
+- **Accounts payable**, grouped by supplier, showing how many days each one has been open.
+- **Partial payments never exceed the balance, even when they arrive at the same time.** A test fires five 40 %
+  payments at once, and only 2 succeed.
+- **Quotes** keep their prices frozen while they are valid. **A quote becomes a sale only once**, even with five
+  simultaneous conversions.
+- **Expenses** by category: rent, utilities, payroll and so on.
+  - A cash expense can come out of the open register. It is subtracted from the expected cash.
+  - Voiding the expense makes the cash count again.
+
+### Reports and export (owner only)
+
+- Total sold compared with the previous period, number of sales, average ticket, sales by day, and peak hours.
+- **Profit:** net sales (without tax) − cost of goods sold = gross profit − expenses = net profit. Purchases are not
+  subtracted: they become inventory and count as cost when sold.
+- **Breakdowns:**
+  - top products with their profit;
+  - payment methods and order types;
+  - taxes collected;
+  - sellers, and register differences per cashier;
+  - expenses by category, and inventory value.
+- **CSV export** of sales, sold products, expenses, purchases and inventory.
+  - The files open with a double click in Spanish-locale Excel: semicolon separator, decimal comma, and UTF-8 with BOM.
+  - **Protected against formula injection:** text starting with `=`, `+`, `-` or `@` is exported as plain text, so Excel
+    never runs it.
+
+### Security
+
+- Deny by default, with a test that walks every endpoint with every role.
+- Lockout after 5 failed attempts, and rate limiting on login and sign-up.
+- The same message for an unknown email as for a wrong password.
+- 15-minute JWT kept in memory, and a rotating refresh token in an `httpOnly`, `Secure`, `SameSite=Strict` cookie.
+- Security headers, with a Content Security Policy that only allows the frontend's own scripts, by hash.
+
+## Local development
+
+Requirements: [.NET 10 SDK](https://dotnet.microsoft.com/download), [Node.js](https://nodejs.org/) 24+ and
 [Docker Desktop](https://www.docker.com/products/docker-desktop/).
 
 ```bash
-# 1. base de datos (PostgreSQL en el puerto 5435)
+# 1. Database (PostgreSQL on port 5435)
 docker compose up -d
 
-# 2. secretos de la API (sin la clave JWT la API no arranca)
+# 2. API secrets (the API does not start without the JWT key)
 cd backend/src/Ventia.Api
-dotnet user-secrets set "Jwt:Key" "<texto aleatorio de 32 caracteres o más>"
-dotnet user-secrets set "Seed:SuperAdminPassword" "<mínimo 10 caracteres, con letras y números>"
+dotnet user-secrets set "Jwt:Key" "<random text, 32+ characters>"
+dotnet user-secrets set "Seed:SuperAdminPassword" "<10+ characters, letters and numbers>"
+# optional: the sample business
+dotnet user-secrets set "Seed:DemoData" "true"
+dotnet user-secrets set "Seed:DemoPassword" "<10+ characters, letters and numbers>"
 
-# 3. API (http://localhost:5180), aplica las migraciones sola al arrancar
+# 3. API (http://localhost:5180): applies migrations and loads the sample data on startup
 dotnet run
 
-# 4. en otra terminal: frontend (http://localhost:4380)
+# 4. In another terminal: frontend (http://localhost:4380)
 cd frontend
 npm install
 npm start
 ```
 
-## Pruebas
+## Tests
 
 ```bash
-# backend (necesita Docker encendido: Testcontainers levanta un PostgreSQL desechable)
+# Backend (Docker must be running: Testcontainers starts a throwaway PostgreSQL)
 cd backend
 dotnet test
 
-# frontend
+# Frontend
 cd frontend
 npx ng test --watch=false
 ```
 
-GitHub Actions corre en cada push:
-- compilación y pruebas del backend y del frontend;
-- auditoría de dependencias de NuGet y npm;
-- construcción de la imagen de Docker con una prueba de humo: registro, login del superadmin y cabeceras de seguridad.
+152 backend tests and 45 frontend tests. GitHub Actions runs on every push:
+- build and tests for the backend and the frontend;
+- NuGet and npm dependency audit;
+- Docker image build, with a smoke test: sign-up, superadmin login and security headers.
 
-## Estructura
+## Project structure
 
 ```
 backend/
   src/
-    Ventia.Domain/          Entidades (Tenant, Category, Product, StockMovement…), impuestos e ITenantOwned
-    Ventia.Application/     Casos de uso, DTOs, validaciones, NIT y documentos, servicio de inventario
-    Ventia.Infrastructure/  EF Core + Identity, filtro e interceptor de negocio, auth, cuentas, migraciones
-    Ventia.Api/             Controladores, políticas, validación de sesión, cabeceras, límites, frontend compilado
-  tests/Ventia.Tests/       Integración contra PostgreSQL real + unitarias
+    Ventia.Domain/          Entities (sales, purchases, quotes, expenses…), taxes and ITenantOwned
+    Ventia.Application/     Use cases per module, DTOs, validation, tax IDs and documents, CSV
+    Ventia.Infrastructure/  EF Core + Identity, tenant filter and interceptor, auth, migrations, sample data
+    Ventia.Api/             Controllers, policies, session validation, headers, rate limits, compiled frontend
+  tests/Ventia.Tests/       Integration tests against real PostgreSQL + unit tests
 frontend/
   src/app/
-    core/                   Sesión, interceptores, guards, tema, avisos
-    shared/                 Logo, diálogo de confirmación, formatos, NIT y documentos, desglose de impuestos
-    features/               landing, auth, app (panel del negocio), admin
+    core/                   Session, interceptors, guards, theme, toasts
+    shared/                 Formatting, taxes, cart, tax IDs and documents, shared dialogs, downloads
+    features/               landing, auth, app (sell, sales, products, purchases, expenses, reports…), admin
+docs/screenshots/           README screenshots
 ```
 
-## Licencia
+## License
 
 [MIT](LICENSE)
