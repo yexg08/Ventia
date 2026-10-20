@@ -5,6 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
+  heroArrowUpTray,
   heroBanknotes,
   heroChatBubbleBottomCenterText,
   heroLockClosed,
@@ -24,7 +25,8 @@ import { ToastService } from '../../../core/notifications/toast.service';
 import { CartLineMath, cartTotals, lineAmounts } from '../../../shared/cart';
 import { DIALOG_DEFAULTS } from '../../../shared/confirm';
 import { formatPrice } from '../../../shared/format';
-import { CashSession, Category, Customer, ORDER_TYPES, OrderType, Product, Sale } from '../business.models';
+import { CashSession, Category, Customer, Expense, ORDER_TYPES, OrderType, Product, Sale } from '../business.models';
+import { NewExpenseDialog, NewExpenseDialogData } from '../expenses/expense-dialogs';
 import { PaymentDialog, PaymentDialogData } from './payment-dialog';
 import { AddOnPicker, CloseCashDialog, CustomerPicker } from './pos-dialogs';
 import { ReceiptDialog, ReceiptDialogData } from './receipt-dialog';
@@ -42,6 +44,7 @@ interface CartLine extends CartLineMath {
   imports: [FormsModule, RouterLink, NgIcon],
   providers: [
     provideIcons({
+      heroArrowUpTray,
       heroBanknotes,
       heroChatBubbleBottomCenterText,
       heroLockClosed,
@@ -265,6 +268,18 @@ export class PosPage {
         this.session.reload();
         const receipt: ReceiptDialogData = { sale, saleId: sale.id };
         this.dialog.open(ReceiptDialog, { data: receipt, ...DIALOG_DEFAULTS });
+      });
+  }
+
+  /** efectivo que sale del cajon (un domicilio o una compra menor) */
+  protected cashOut(): void {
+    const data: NewExpenseDialogData = { cashOnly: true };
+    this.dialog
+      .open<Expense>(NewExpenseDialog, { data, ...DIALOG_DEFAULTS })
+      .closed.pipe(filter((e): e is Expense => !!e))
+      .subscribe((e) => {
+        this.toasts.success(`Salida de ${this.money(e.amount)} registrada.`);
+        this.session.reload();
       });
   }
 

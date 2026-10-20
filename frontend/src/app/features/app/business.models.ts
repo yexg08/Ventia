@@ -192,7 +192,9 @@ export interface CashSession {
   voidedCount: number;
   salesTotal: number;
   byMethod: PaymentSummary[];
-  /** base mas efectivo de las ventas no anuladas */
+  /** efectivo que salio de la caja (gastos y pagos a proveedores) */
+  cashOut: number;
+  /** base mas efectivo de las ventas no anuladas menos las salidas */
   expectedCash: number;
   countedCash: number | null;
   difference: number | null;
@@ -303,6 +305,8 @@ export interface Purchase {
   supplierName: string;
   supplierInvoice: string | null;
   total: number;
+  paidAmount: number;
+  balance: number;
   notes: string | null;
   status: PurchaseStatus;
   voidedAt: string | null;
@@ -311,6 +315,7 @@ export interface Purchase {
   createdByName: string;
   createdAt: string;
   lines: PurchaseLine[];
+  payments: SupplierPayment[];
 }
 
 export interface PurchaseSummary {
@@ -320,6 +325,8 @@ export interface PurchaseSummary {
   supplierName: string;
   supplierInvoice: string | null;
   total: number;
+  /** lo que falta pagarle al proveedor */
+  balance: number;
   status: PurchaseStatus;
   itemCount: number;
 }
@@ -330,6 +337,82 @@ export interface CreatePurchaseRequest {
   date: string | null;
   lines: { productId: string; quantity: number; unitCost: number }[];
   notes: string | null;
+  /** pagada de contado con este medio (null es a credito) */
+  paidWith: PaymentMethod | null;
+  paidFromCashRegister: boolean;
+}
+
+export interface SupplierPayment {
+  id: string;
+  purchaseId: string;
+  date: string;
+  amount: number;
+  method: PaymentMethod;
+  fromCashRegister: boolean;
+  reference: string | null;
+  createdByName: string;
+  isVoided: boolean;
+  voidedBy: string | null;
+  voidReason: string | null;
+}
+
+export interface PaySupplierRequest {
+  amount: number;
+  method: PaymentMethod;
+  date: string | null;
+  fromCashRegister: boolean;
+  reference: string | null;
+}
+
+/** compra con saldo pendiente */
+export interface Payable {
+  purchaseId: string;
+  number: number;
+  date: string;
+  supplierId: string;
+  supplierName: string;
+  supplierInvoice: string | null;
+  total: number;
+  paidAmount: number;
+  balance: number;
+  daysOpen: number;
+}
+
+export type ExpenseCategory = 'Rent' | 'Utilities' | 'Payroll' | 'Supplies' | 'Maintenance' | 'Marketing' | 'Taxes' | 'Other';
+
+export const EXPENSE_CATEGORIES: { value: ExpenseCategory; label: string }[] = [
+  { value: 'Supplies', label: 'Insumos y desechables' },
+  { value: 'Rent', label: 'Arriendo' },
+  { value: 'Utilities', label: 'Servicios públicos' },
+  { value: 'Payroll', label: 'Nómina' },
+  { value: 'Maintenance', label: 'Mantenimiento' },
+  { value: 'Marketing', label: 'Publicidad' },
+  { value: 'Taxes', label: 'Impuestos' },
+  { value: 'Other', label: 'Otros' },
+];
+
+export interface Expense {
+  id: string;
+  date: string;
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  method: PaymentMethod;
+  fromCashRegister: boolean;
+  createdByName: string;
+  createdAt: string;
+  isVoided: boolean;
+  voidedBy: string | null;
+  voidReason: string | null;
+}
+
+export interface CreateExpenseRequest {
+  date: string | null;
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  method: PaymentMethod;
+  fromCashRegister: boolean;
 }
 
 export type QuoteStatus = 'Open' | 'Converted' | 'Cancelled';

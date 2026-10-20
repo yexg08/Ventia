@@ -1,13 +1,17 @@
-import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
+import { Dialog, DialogRef, DIALOG_DATA } from '@angular/cdk/dialog';
 import { HttpClient, httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { heroPlus, heroTrash } from '@ng-icons/heroicons/outline';
 import { API_BASE, getErrorMessage, getFieldErrors, silentErrors } from '../../../core/http/api';
+import { filter } from 'rxjs';
+import { DIALOG_DEFAULTS } from '../../../shared/confirm';
 import { formatIsoDate, localIsoDate } from '../../../shared/dates';
 import { formatPrice } from '../../../shared/format';
-import { CreatePurchaseRequest, Product, Purchase, Supplier } from '../business.models';
+import { VoidDialog, VoidDialogData } from '../../../shared/void-dialog';
+import { CreatePurchaseRequest, PAYMENT_METHODS, PaymentMethod, Product, Purchase, Supplier, SupplierPayment } from '../business.models';
+import { PaySupplierDialog, PaySupplierDialogData } from '../expenses/expense-dialogs';
 
 interface DraftLine {
   key: string;
@@ -86,6 +90,32 @@ interface DraftLine {
           <button type="button" class="btn-ghost mt-1 px-2 text-sm" (click)="addLine()"><ng-icon name="heroPlus" size="16" /> Otro producto</button>
         </fieldset>
 
+        <fieldset>
+          <legend class="field-label">Pago</legend>
+          <div class="grid grid-cols-2 gap-1 rounded-xl bg-surface-2 p-1" role="radiogroup" aria-label="Forma de pago">
+            <button type="button" role="radio" class="rounded-lg px-2 py-1.5 text-sm font-semibold transition" [attr.aria-checked]="!paidNow()" [class]="!paidNow() ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'" (click)="paidNow.set(false)">A crédito</button>
+            <button type="button" role="radio" class="rounded-lg px-2 py-1.5 text-sm font-semibold transition" [attr.aria-checked]="paidNow()" [class]="paidNow() ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'" (click)="paidNow.set(true)">De contado</button>
+          </div>
+          @if (paidNow()) {
+            <div class="mt-3 flex flex-wrap items-center gap-3">
+              <label for="purchase-method" class="sr-only">Medio de pago</label>
+              <select id="purchase-method" class="field-input w-auto" [ngModel]="method()" (ngModelChange)="setMethod($event)" name="method">
+                @for (m of methods; track m.value) {
+                  <option [value]="m.value">{{ m.label }}</option>
+                }
+              </select>
+              @if (method() === 'Cash') {
+                <label class="flex items-center gap-2 text-sm">
+                  <input type="checkbox" class="size-4 accent-accent" [ngModel]="fromRegister()" (ngModelChange)="fromRegister.set($event)" name="fromRegister" />
+                  Sale de mi caja abierta (solo hoy)
+                </label>
+              }
+            </div>
+          } @else {
+            <p class="mt-2 text-xs text-faint">Queda en cuentas por pagar hasta que le pagues al proveedor.</p>
+          }
+        </fieldset>
+
         <div>
           <label for="purchase-notes" class="field-label">Notas <span class="font-normal text-faint">(opcional)</span></label>
           <input id="purchase-notes" class="field-input" maxlength="300" [(ngModel)]="notes" name="notes" />
@@ -107,6 +137,7 @@ export class NewPurchaseDialog {
   protected readonly ref = inject<DialogRef<Purchase>>(DialogRef);
   protected readonly money = formatPrice;
   protected readonly today = localIsoDate();
+  protected readonly methods = PAYMENT_METHODS;
 
   private readonly suppliers = httpResource<Supplier[]>(() => `${API_BASE}/suppliers`, { defaultValue: [] });
   protected readonly products = httpResource<Product[]>(() => `${API_BASE}/products`, { defaultValue: [] });
@@ -118,6 +149,9 @@ export class NewPurchaseDialog {
   protected date = this.today;
   protected notes = '';
   protected readonly lines = signal<DraftLine[]>([this.newLine()]);
+  protected readonly paidNow = signal(false);
+  protected readonly method = signal<PaymentMethod>('Transfer');
+  protected readonly fromRegister = signal(false);
 
   protected readonly total = computed(() => this.lines().reduce((sum, l) => sum + l.quantity * l.unitCost, 0));
   protected readonly valid = computed(() =>
@@ -131,6 +165,11 @@ export class NewPurchaseDialog {
   protected num(value: unknown): number {
     const n = Number(value);
     return Number.isFinite(n) && n >= 0 ? n : 0;
+  }
+
+  protected setMethod(method: PaymentMethod): void {
+    this.method.set(method);
+    if (method !== 'Cash') this.fromRegister.set(false);
   }
 
   private newLine(): DraftLine {
@@ -160,12 +199,16 @@ export class NewPurchaseDialog {
       this.error.set('Elige el proveedor y completa cada producto con su cantidad y costo.');
       return;
     }
+    // una salida de caja siempre es de hoy
+    const fromRegister = this.paidNow() && this.method() === 'Cash' && this.fromRegister();
     const body: CreatePurchaseRequest = {
       supplierId: this.supplierId,
       supplierInvoice: this.invoice.trim() || null,
-      date: this.date || null,
+      date: fromRegister ? null : this.date || null,
       notes: this.notes.trim() || null,
       lines: this.lines().map((l) => ({ productId: l.productId, quantity: l.quantity, unitCost: l.unitCost })),
+      paidWith: this.paidNow() ? this.method() : null,
+      paidFromCashRegister: fromRegister,
     };
     this.saving.set(true);
     this.error.set(null);
@@ -181,7 +224,7 @@ export class NewPurchaseDialog {
   }
 }
 
-/** detalle de una compra con la opcion de anularla (cierra con true si se anulo) */
+/** detalle de una compra con sus pagos (cierra con true si se anulo o cambio su saldo) */
 @Component({
   selector: 'app-purchase-detail-dialog',
   imports: [FormsModule],
@@ -208,6 +251,32 @@ export class NewPurchaseDialog {
             </tbody>
           </table>
           <p class="mt-3 flex justify-between border-t border-line pt-3 text-base font-bold"><span>Total</span><span class="tabular-nums">{{ money(p.total) }}</span></p>
+          @if (p.status === 'Completed') {
+            <p class="mt-1 flex justify-between text-muted"><span>Pagado</span><span class="tabular-nums">{{ money(p.paidAmount) }}</span></p>
+            <p class="flex justify-between font-semibold" [class.text-danger]="p.balance > 0"><span>Saldo</span><span class="tabular-nums">{{ money(p.balance) }}</span></p>
+          }
+
+          @if (p.payments.length) {
+            <h3 class="mt-4 text-xs font-semibold tracking-wider text-muted uppercase">Pagos</h3>
+            <ul class="mt-1 divide-y divide-line">
+              @for (pay of p.payments; track pay.id) {
+                <li class="flex items-center gap-3 py-2" [class.opacity-60]="pay.isVoided">
+                  <div class="min-w-0 flex-1">
+                    <p>{{ date(pay.date) }} · {{ methodLabel(pay.method) }}{{ pay.fromCashRegister ? ' (de la caja)' : '' }}{{ pay.reference ? ' · ' + pay.reference : '' }}</p>
+                    @if (pay.isVoided) {
+                      <p class="text-xs text-danger">Anulado por {{ pay.voidedBy }}: {{ pay.voidReason }}</p>
+                    } @else {
+                      <p class="text-xs text-faint">{{ pay.createdByName }}</p>
+                    }
+                  </div>
+                  <span class="font-semibold tabular-nums" [class.line-through]="pay.isVoided">{{ money(pay.amount) }}</span>
+                  @if (!pay.isVoided) {
+                    <button type="button" class="btn-ghost px-2 py-1 text-xs hover:text-danger" (click)="voidPayment(p, pay)" [attr.aria-label]="'Anular el pago de ' + money(pay.amount)">Anular</button>
+                  }
+                </li>
+              }
+            </ul>
+          }
           @if (p.notes) { <p class="mt-2 text-xs text-muted">{{ p.notes }}</p> }
           <p class="mt-2 text-xs text-faint">Registrada por {{ p.createdByName }}</p>
         </div>
@@ -223,10 +292,15 @@ export class NewPurchaseDialog {
             </div>
           } @else {
             <div class="flex justify-end gap-2">
-              @if (p.status === 'Completed') {
+              @if (p.status === 'Completed' && p.paidAmount === 0) {
                 <button type="button" class="btn-ghost mr-auto hover:text-danger" (click)="voiding.set(true)">Anular</button>
+              } @else if (p.status === 'Completed') {
+                <p class="mr-auto self-center text-xs text-faint">Para anularla, anula primero sus pagos.</p>
               }
-              <button type="button" class="btn-primary" (click)="ref.close(voided())">Listo</button>
+              @if (p.status === 'Completed' && p.balance > 0) {
+                <button type="button" class="btn-secondary" (click)="pay(p)">Registrar pago</button>
+              }
+              <button type="button" class="btn-primary" (click)="ref.close(changed())">Listo</button>
             </div>
           }
         </div>
@@ -238,6 +312,7 @@ export class NewPurchaseDialog {
 })
 export class PurchaseDetailDialog {
   private readonly http = inject(HttpClient);
+  private readonly dialog = inject(Dialog);
   private readonly id = inject<string>(DIALOG_DATA);
   protected readonly ref = inject<DialogRef<boolean>>(DialogRef);
   protected readonly money = formatPrice;
@@ -248,7 +323,7 @@ export class PurchaseDetailDialog {
   protected readonly purchase = computed(() => this.updated() ?? (this.loaded.hasValue() ? this.loaded.value() : null));
 
   protected readonly voiding = signal(false);
-  protected readonly voided = signal(false);
+  protected readonly changed = signal(false);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
   protected reason = '';
@@ -259,7 +334,7 @@ export class PurchaseDetailDialog {
     this.http.post<Purchase>(`${API_BASE}/purchases/${p.id}/void`, { reason: this.reason.trim() }, { context: silentErrors() }).subscribe({
       next: (purchase) => {
         this.updated.set(purchase);
-        this.voided.set(true);
+        this.changed.set(true);
         this.voiding.set(false);
         this.saving.set(false);
       },
@@ -268,5 +343,36 @@ export class PurchaseDetailDialog {
         this.saving.set(false);
       },
     });
+  }
+
+  protected methodLabel(method: PaymentMethod): string {
+    return PAYMENT_METHODS.find((m) => m.value === method)?.label ?? method;
+  }
+
+  protected pay(p: Purchase): void {
+    const data: PaySupplierDialogData = { purchaseId: p.id, number: p.number, supplierName: p.supplierName, balance: p.balance };
+    this.dialog
+      .open<SupplierPayment>(PaySupplierDialog, { data, ...DIALOG_DEFAULTS })
+      .closed.pipe(filter((pay): pay is SupplierPayment => !!pay))
+      .subscribe(() => this.refresh());
+  }
+
+  protected voidPayment(p: Purchase, payment: SupplierPayment): void {
+    const data: VoidDialogData = {
+      title: `Anular el pago de ${this.money(payment.amount)}`,
+      hint: `El saldo de la compra ${p.number} vuelve a subir${payment.fromCashRegister ? ' y el efectivo vuelve a contar en la caja' : ''}.`,
+      url: `${API_BASE}/supplier-payments/${payment.id}/void`,
+      confirmText: 'Anular pago',
+    };
+    this.dialog
+      .open<SupplierPayment>(VoidDialog, { data, ...DIALOG_DEFAULTS })
+      .closed.pipe(filter((pay): pay is SupplierPayment => !!pay))
+      .subscribe(() => this.refresh());
+  }
+
+  /** vuelve a pedir la compra para ver el saldo y los pagos al dia */
+  private refresh(): void {
+    this.changed.set(true);
+    this.http.get<Purchase>(`${API_BASE}/purchases/${this.id}`).subscribe((purchase) => this.updated.set(purchase));
   }
 }

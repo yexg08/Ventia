@@ -21,7 +21,7 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
 | 3 | Clientes y proveedores (NIT con dígito de verificación) | Hecha |
 | 4 | Punto de venta: carrito, descuentos, pago mixto, consecutivo, anulación, caja, tipo de pedido, notas y adiciones | Hecha |
 | 5 | Compras con costo promedio y cotizaciones que se convierten en venta | Hecha |
-| 6 | Gastos y pagos a proveedores | Pendiente |
+| 6 | Gastos y pagos a proveedores | Hecha |
 | 7 | Reportes y exportación a CSV | Pendiente |
 | 8 | Pulido: datos de ejemplo, README bilingüe, capturas | Pendiente |
 | 9 | Diseño final: moderno, minimalista y con animaciones suaves | Pendiente |
@@ -76,7 +76,7 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
   - Los cajeros registran y editan clientes desde la caja. Solo el dueño los borra y gestiona los proveedores.
   - Búsqueda por nombre, documento o celular.
 - **Punto de venta (fase 4):**
-  - **Turnos de caja:** cada cuenta abre su caja con una base y la cierra contando el efectivo. El sistema calcula lo esperado (base más efectivo de las ventas no anuladas) y la diferencia. Una cuenta no puede tener dos cajas abiertas, ni siquiera con dos aperturas simultáneas (índice único parcial).
+  - **Turnos de caja:** cada cuenta abre su caja con una base y la cierra contando el efectivo. El sistema calcula lo esperado (base más efectivo de las ventas no anuladas, menos las salidas de caja) y la diferencia. Una cuenta no puede tener dos cajas abiertas, ni siquiera con dos aperturas simultáneas (índice único parcial).
   - **Pantalla de caja:** productos por categoría, buscador que acepta código de barras con Enter, tipo de pedido (mesa, para llevar o domicilio), cliente o consumidor final, notas por línea ("sin cebolla"), descuento por línea y adiciones colgadas de un producto.
   - **Cobro:** efectivo, tarjeta, transferencia o mixto, con el cambio calculado. Solo se registra cómo se pagó; no se procesan pagos reales.
   - **El servidor manda:** el navegador solo envía qué productos y cuántos. Precios, impuestos, descuentos y totales los calcula el servidor (una prueba manda un precio falso y se ignora).
@@ -95,6 +95,12 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
   - **Una cotización se convierte una sola vez:** se marca dentro de la transacción de la venta con un `UPDATE` condicional. Cinco conversiones simultáneas dejan una sola venta, y reintentar el mismo cobro devuelve la misma venta.
   - Ventas, compras y cotizaciones comparten el mismo mecanismo de consecutivo sin saltos (`DocumentNumbers`).
   - Cotización imprimible ("no es una factura").
+- **Gastos y pagos a proveedores (fase 6):**
+  - **Gastos** por categoría (arriendo, servicios, nómina, insumos…) con su medio de pago. Solo el dueño los anula, con motivo.
+  - **Salidas de caja:** un gasto o un pago en efectivo puede salir de la caja abierta. Se resta del efectivo esperado al cerrar el turno, y si se anula vuelve a contar. El cajero solo puede registrar salidas de su propia caja (y solo ve las suyas).
+  - **Compras de contado o a crédito.** Las de crédito quedan en **cuentas por pagar**, agrupadas por proveedor y con los días que llevan abiertas.
+  - **Abonos:** una compra se paga en uno o varios pagos. **Nunca se paga más que el saldo, ni con pagos simultáneos:** el abono es un solo `UPDATE` con la condición adentro (una prueba lanza 5 abonos del 40 % a la vez y solo entran 2), y una restricción `CHECK` de la base es la última barrera.
+  - Anular un pago devuelve el saldo una sola vez aunque se anule varias veces al mismo tiempo. Una compra con pagos no se anula hasta anular sus pagos.
 - **Seguridad:**
   - Denegar por defecto, con una prueba que recorre todos los endpoints con cada rol.
   - Bloqueo tras 5 intentos fallidos y límite de peticiones en login y registro.

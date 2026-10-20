@@ -77,12 +77,19 @@ public class CashSessionsService(IAppDbContext db, ICurrentUser currentUser, Tim
 
     private Guid RequireUserId() => currentUser.UserId ?? throw new UnauthorizedAccessException();
 
-    // base mas lo cobrado en efectivo en ventas no anuladas del turno
+    // base mas lo cobrado en efectivo en ventas no anuladas menos lo que salio de la caja
     private async Task<decimal> ExpectedCashAsync(CashSession session, CancellationToken ct) =>
-        session.OpeningCash + await db.SalePayments
+        session.OpeningCash
+        + await db.SalePayments
             .Where(p => p.Method == PaymentMethod.Cash
                 && db.Sales.Any(s => s.Id == p.SaleId && s.CashSessionId == session.Id && s.Status == SaleStatus.Completed))
-            .SumAsync(p => p.Amount, ct);
+            .SumAsync(p => p.Amount, ct)
+        - await CashOutAsync(session, ct);
+
+    // gastos y pagos a proveedores en efectivo que salieron de este turno
+    private async Task<decimal> CashOutAsync(CashSession session, CancellationToken ct) =>
+        await db.Expenses.Where(e => e.CashSessionId == session.Id && !e.IsVoided).SumAsync(e => e.Amount, ct)
+        + await db.SupplierPayments.Where(p => p.CashSessionId == session.Id && !p.IsVoided).SumAsync(p => p.Amount, ct);
 
     private async Task<CashSessionDto> ToDtoAsync(CashSession session, CancellationToken ct)
     {
@@ -99,6 +106,6 @@ public class CashSessionsService(IAppDbContext db, ICurrentUser currentUser, Tim
             session.Id, session.UserName, session.CreatedAt, session.OpeningCash, session.ClosedAt,
             await completed.CountAsync(ct), await sales.CountAsync(s => s.Status == SaleStatus.Voided, ct),
             await completed.SumAsync(s => s.Total, ct), byMethod.OrderBy(m => m.Method).ToList(),
-            expected, session.CountedCash, session.CountedCash - session.ExpectedCash, session.CloseNotes);
+            await CashOutAsync(session, ct), expected, session.CountedCash, session.CountedCash - session.ExpectedCash, session.CloseNotes);
     }
 }

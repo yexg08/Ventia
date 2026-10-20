@@ -207,7 +207,13 @@ public class PurchaseConfiguration : IEntityTypeConfiguration<Purchase>
 {
     public void Configure(EntityTypeBuilder<Purchase> b)
     {
-        b.ToTable("purchases", t => t.HasCheckConstraint("ck_purchases_total_non_negative", "\"Total\" >= 0"));
+        // lo pagado nunca supera el total (ultima barrera aunque el codigo se saltara la condicion del UPDATE)
+        b.ToTable("purchases", t =>
+        {
+            t.HasCheckConstraint("ck_purchases_total_non_negative", "\"Total\" >= 0");
+            t.HasCheckConstraint("ck_purchases_paid_within_total", "\"PaidAmount\" >= 0 AND \"PaidAmount\" <= \"Total\"");
+        });
+        b.Property(p => p.PaidAmount).HasPrecision(14, 2);
         b.Property(p => p.SupplierName).HasMaxLength(100).IsRequired();
         b.Property(p => p.SupplierInvoice).HasMaxLength(30);
         b.Property(p => p.Notes).HasMaxLength(300);
@@ -275,6 +281,46 @@ public class QuoteLineConfiguration : IEntityTypeConfiguration<QuoteLine>
         b.HasIndex(l => l.TenantId);
         b.HasOne<Product>().WithMany().HasForeignKey(l => l.ProductId).OnDelete(DeleteBehavior.Restrict);
         b.HasOne<Tenant>().WithMany().HasForeignKey(l => l.TenantId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class ExpenseConfiguration : IEntityTypeConfiguration<Expense>
+{
+    public void Configure(EntityTypeBuilder<Expense> b)
+    {
+        b.ToTable("expenses", t => t.HasCheckConstraint("ck_expenses_amount_positive", "\"Amount\" > 0"));
+        b.Property(e => e.Category).HasConversion<string>().HasMaxLength(15);
+        b.Property(e => e.Method).HasConversion<string>().HasMaxLength(10);
+        b.Property(e => e.Description).HasMaxLength(150).IsRequired();
+        b.Property(e => e.Amount).HasPrecision(14, 2);
+        b.Property(e => e.CreatedByName).HasMaxLength(80).IsRequired();
+        b.Property(e => e.VoidedBy).HasMaxLength(80);
+        b.Property(e => e.VoidReason).HasMaxLength(200);
+        b.HasIndex(e => new { e.TenantId, e.Date });
+        b.HasIndex(e => e.CashSessionId);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(e => e.TenantId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<CashSession>().WithMany().HasForeignKey(e => e.CashSessionId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SupplierPaymentConfiguration : IEntityTypeConfiguration<SupplierPayment>
+{
+    public void Configure(EntityTypeBuilder<SupplierPayment> b)
+    {
+        b.ToTable("supplier_payments", t => t.HasCheckConstraint("ck_supplier_payments_amount_positive", "\"Amount\" > 0"));
+        b.Property(p => p.Method).HasConversion<string>().HasMaxLength(10);
+        b.Property(p => p.Amount).HasPrecision(14, 2);
+        b.Property(p => p.Reference).HasMaxLength(40);
+        b.Property(p => p.CreatedByName).HasMaxLength(80).IsRequired();
+        b.Property(p => p.VoidedBy).HasMaxLength(80);
+        b.Property(p => p.VoidReason).HasMaxLength(200);
+        b.HasIndex(p => p.PurchaseId);
+        b.HasIndex(p => p.CashSessionId);
+        b.HasIndex(p => new { p.TenantId, p.Date });
+        b.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Purchase>().WithMany().HasForeignKey(p => p.PurchaseId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Supplier>().WithMany().HasForeignKey(p => p.SupplierId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<CashSession>().WithMany().HasForeignKey(p => p.CashSessionId).OnDelete(DeleteBehavior.Restrict);
     }
 }
 

@@ -11,10 +11,11 @@ public record CloseCashSessionRequest(decimal CountedCash, string? Notes);
 
 public record PaymentSummaryDto(PaymentMethod Method, decimal Amount);
 
-/// <param name="ExpectedCash">base mas efectivo de las ventas no anuladas (lo que deberia haber en el cajon)</param>
+/// <param name="CashOut">efectivo que salio de la caja (gastos y pagos a proveedores no anulados)</param>
+/// <param name="ExpectedCash">base mas efectivo de las ventas no anuladas menos las salidas (lo que deberia haber en el cajon)</param>
 public record CashSessionDto(
     Guid Id, string UserName, DateTime OpenedAt, decimal OpeningCash, DateTime? ClosedAt,
-    int SalesCount, int VoidedCount, decimal SalesTotal, IReadOnlyList<PaymentSummaryDto> ByMethod,
+    int SalesCount, int VoidedCount, decimal SalesTotal, IReadOnlyList<PaymentSummaryDto> ByMethod, decimal CashOut,
     decimal ExpectedCash, decimal? CountedCash, decimal? Difference, string? CloseNotes);
 
 public class OpenCashSessionRequestValidator : AbstractValidator<OpenCashSessionRequest>

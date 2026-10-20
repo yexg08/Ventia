@@ -30,6 +30,10 @@ public class Purchase : Entity, ITenantOwned
     public DateOnly Date { get; set; }
 
     public decimal Total { get; set; }
+
+    /// <summary>suma de los pagos no anulados (nunca mayor que el total) y el saldo es la diferencia</summary>
+    public decimal PaidAmount { get; set; }
+
     public string? Notes { get; set; }
 
     public PurchaseStatus Status { get; set; } = PurchaseStatus.Completed;

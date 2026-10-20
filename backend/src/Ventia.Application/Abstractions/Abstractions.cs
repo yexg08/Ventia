@@ -22,6 +22,8 @@ public interface IAppDbContext
     DbSet<PurchaseLine> PurchaseLines { get; }
     DbSet<Quote> Quotes { get; }
     DbSet<QuoteLine> QuoteLines { get; }
+    DbSet<Expense> Expenses { get; }
+    DbSet<SupplierPayment> SupplierPayments { get; }
 
     /// <summary>transacciones y actualizaciones atomicas (como descontar stock sin carreras)</summary>
     DatabaseFacade Database { get; }

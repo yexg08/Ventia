@@ -75,7 +75,11 @@ import { NewPurchaseDialog, PurchaseDetailDialog } from './purchase-dialogs';
                     <td class="px-5 py-3">{{ p.supplierName }}@if (p.supplierInvoice) { <span class="text-xs text-faint"> · {{ p.supplierInvoice }}</span> }</td>
                     <td class="px-5 py-3 text-right tabular-nums">{{ p.itemCount }}</td>
                     <td class="px-5 py-3 text-right whitespace-nowrap">
-                      @if (p.status === 'Voided') { <span class="mr-2 rounded-full bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger">Anulada</span> }
+                      @if (p.status === 'Voided') {
+                        <span class="mr-2 rounded-full bg-danger/15 px-2 py-0.5 text-xs font-semibold text-danger">Anulada</span>
+                      } @else if (p.balance > 0) {
+                        <span class="mr-2 rounded-full bg-accent/15 px-2 py-0.5 text-xs font-semibold text-accent">Debe {{ money(p.balance) }}</span>
+                      }
                       <span class="font-semibold tabular-nums" [class.line-through]="p.status === 'Voided'">{{ money(p.total) }}</span>
                     </td>
                   </tr>
@@ -109,7 +113,11 @@ export class PurchasesPage {
       .open<Purchase>(NewPurchaseDialog, DIALOG_DEFAULTS)
       .closed.pipe(filter((p): p is Purchase => !!p))
       .subscribe((p) => {
-        this.toasts.success(`Compra ${p.number} registrada. El stock ya se actualizó.`);
+        this.toasts.success(
+          p.balance > 0
+            ? `Compra ${p.number} registrada a crédito. Quedó en cuentas por pagar.`
+            : `Compra ${p.number} registrada y pagada. El stock ya se actualizó.`,
+        );
         this.purchases.reload();
       });
   }

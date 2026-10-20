@@ -1,6 +1,7 @@
 using Ventia.Application.Abstractions;
 using Ventia.Application.Common;
 using Ventia.Application.Inventory;
+using Ventia.Application.Sales;
 using Ventia.Domain.Entities;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
@@ -10,8 +11,11 @@ namespace Ventia.Application.Purchasing;
 public record PurchaseLineRequest(Guid ProductId, int Quantity, decimal UnitCost);
 
 /// <param name="Date">dia de la compra (si no viene es hoy en la hora del negocio)</param>
+/// <param name="PaidWith">pagada de contado con este medio (null es a credito y queda como cuenta por pagar)</param>
+/// <param name="PaidFromCashRegister">el pago de contado sale en efectivo de la caja abierta</param>
 public record CreatePurchaseRequest(
-    Guid SupplierId, string? SupplierInvoice, DateOnly? Date, IReadOnlyList<PurchaseLineRequest> Lines, string? Notes);
+    Guid SupplierId, string? SupplierInvoice, DateOnly? Date, IReadOnlyList<PurchaseLineRequest> Lines, string? Notes,
+    PaymentMethod? PaidWith = null, bool PaidFromCashRegister = false);
 
 public record VoidPurchaseRequest(string Reason);
 
@@ -19,12 +23,13 @@ public record PurchaseLineDto(Guid Id, Guid ProductId, string ProductName, int Q
 
 public record PurchaseDto(
     Guid Id, int Number, DateOnly Date, Guid SupplierId, string SupplierName, string? SupplierInvoice, decimal Total,
-    string? Notes, PurchaseStatus Status, DateTime? VoidedAt, string? VoidedBy, string? VoidReason, string CreatedByName,
-    DateTime CreatedAt, IReadOnlyList<PurchaseLineDto> Lines);
+    decimal PaidAmount, decimal Balance, string? Notes, PurchaseStatus Status, DateTime? VoidedAt, string? VoidedBy,
+    string? VoidReason, string CreatedByName, DateTime CreatedAt, IReadOnlyList<PurchaseLineDto> Lines,
+    IReadOnlyList<SupplierPaymentDto> Payments);
 
 public record PurchaseSummaryDto(
-    Guid Id, int Number, DateOnly Date, string SupplierName, string? SupplierInvoice, decimal Total, PurchaseStatus Status,
-    int ItemCount);
+    Guid Id, int Number, DateOnly Date, string SupplierName, string? SupplierInvoice, decimal Total, decimal Balance,
+    PurchaseStatus Status, int ItemCount);
 
 public record PurchasesQuery(DateOnly? From, DateOnly? To, PurchaseStatus? Status);
 
@@ -35,6 +40,10 @@ public class CreatePurchaseRequestValidator : AbstractValidator<CreatePurchaseRe
         RuleFor(x => x.SupplierId).NotEmpty().WithMessage("Elige el proveedor.");
         RuleFor(x => x.SupplierInvoice).MaximumLength(30).WithMessage("El número de factura no puede superar 30 caracteres.");
         RuleFor(x => x.Notes).MaximumLength(300).WithMessage("Las notas no pueden superar 300 caracteres.");
+        RuleFor(x => x.PaidWith).IsInEnum().When(x => x.PaidWith is not null).WithMessage("El medio de pago no es válido.");
+        RuleFor(x => x.PaidFromCashRegister)
+            .Must((request, fromRegister) => !fromRegister || request.PaidWith == PaymentMethod.Cash)
+            .WithMessage("Solo un pago en efectivo puede salir de la caja.");
         RuleFor(x => x.Lines)
             .NotEmpty().WithMessage("Agrega al menos un producto.")
             .Must(lines => lines is null || lines.Count <= 100).WithMessage("Máximo 100 líneas por compra.");
@@ -75,6 +84,7 @@ public class PurchasesService(
     ITenantContext tenant,
     ICurrentUser currentUser,
     IStockService stock,
+    ICashSessionsService cashSessions,
     TimeProvider timeProvider) : IPurchasesService
 {
     public async Task<IReadOnlyList<PurchaseSummaryDto>> ListAsync(PurchasesQuery query, CancellationToken ct)
@@ -91,7 +101,8 @@ public class PurchasesService(
             .OrderByDescending(p => p.Number)
             .Take(500)
             .Select(p => new PurchaseSummaryDto(
-                p.Id, p.Number, p.Date, p.SupplierName, p.SupplierInvoice, p.Total, p.Status, p.Lines.Sum(l => l.Quantity)))
+                p.Id, p.Number, p.Date, p.SupplierName, p.SupplierInvoice, p.Total,
+                p.Status == PurchaseStatus.Completed ? p.Total - p.PaidAmount : 0, p.Status, p.Lines.Sum(l => l.Quantity)))
             .ToListAsync(ct);
     }
 
@@ -100,7 +111,11 @@ public class PurchasesService(
         var purchase = await db.Purchases.AsNoTracking()
             .Include(p => p.Lines.OrderBy(l => l.Position))
             .FirstOrDefaultAsync(p => p.Id == id, ct) ?? throw new NotFoundException("La compra");
-        return ToDto(purchase);
+        var payments = await db.SupplierPayments.AsNoTracking()
+            .Where(p => p.PurchaseId == id)
+            .OrderBy(p => p.Date).ThenBy(p => p.CreatedAt)
+            .ToListAsync(ct);
+        return ToDto(purchase, payments);
     }
 
     public async Task<PurchaseDto> CreateAsync(CreatePurchaseRequest request, CancellationToken ct)
@@ -145,6 +160,15 @@ public class PurchasesService(
         }
         purchase.Total = purchase.Lines.Sum(l => l.LineTotal);
 
+        // pagada de contado (el pago nace con la compra y si sale de la caja queda en el turno abierto)
+        Guid? cashSessionId = null;
+        if (request.PaidFromCashRegister)
+        {
+            if (date != today) throw new FieldValidationException(nameof(request.Date), "Una salida de caja es de hoy.");
+            cashSessionId = (await cashSessions.RequireOpenAsync(ct)).Id;
+        }
+        if (request.PaidWith is not null) purchase.PaidAmount = purchase.Total;
+
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         purchase.Number = await DocumentNumbers.NextAsync(db, tenantId, DocumentKind.Purchase, ct);
         db.Purchases.Add(purchase);
@@ -158,6 +182,22 @@ public class PurchasesService(
             await stock.ChangeAsync(group.Key, quantity, StockMovementType.Purchase, $"Compra {purchase.Number}", ct, purchaseId: purchase.Id);
         }
 
+        if (request.PaidWith is { } method && purchase.Total > 0)
+        {
+            db.SupplierPayments.Add(new SupplierPayment
+            {
+                PurchaseId = purchase.Id,
+                SupplierId = purchase.SupplierId,
+                Date = date,
+                Amount = purchase.Total,
+                Method = method,
+                CashSessionId = cashSessionId,
+                Reference = "Pago de contado",
+                CreatedByName = purchase.CreatedByName
+            });
+            await db.SaveChangesAsync(ct);
+        }
+
         await transaction.CommitAsync(ct);
         return await GetAsync(purchase.Id, ct);
     }
@@ -166,6 +206,8 @@ public class PurchasesService(
     {
         var purchase = await db.Purchases.FirstOrDefaultAsync(p => p.Id == id, ct) ?? throw new NotFoundException("La compra");
         if (purchase.Status == PurchaseStatus.Voided) throw new BusinessRuleException($"La compra {purchase.Number} ya está anulada.");
+        if (purchase.PaidAmount > 0)
+            throw new BusinessRuleException($"La compra {purchase.Number} tiene pagos registrados. Anula primero sus pagos.");
 
         var entered = await db.StockMovements.AsNoTracking()
             .Where(m => m.PurchaseId == purchase.Id && m.Type == StockMovementType.Purchase)
@@ -214,9 +256,11 @@ public class PurchasesService(
         return BusinessTime.Today(zone, timeProvider);
     }
 
-    private static PurchaseDto ToDto(Purchase p) =>
-        new(p.Id, p.Number, p.Date, p.SupplierId, p.SupplierName, p.SupplierInvoice, p.Total, p.Notes, p.Status, p.VoidedAt,
+    private static PurchaseDto ToDto(Purchase p, IReadOnlyList<SupplierPayment> payments) =>
+        new(p.Id, p.Number, p.Date, p.SupplierId, p.SupplierName, p.SupplierInvoice, p.Total, p.PaidAmount,
+            p.Status == PurchaseStatus.Completed ? p.Total - p.PaidAmount : 0, p.Notes, p.Status, p.VoidedAt,
             p.VoidedBy, p.VoidReason, p.CreatedByName, p.CreatedAt,
             p.Lines.OrderBy(l => l.Position)
-                .Select(l => new PurchaseLineDto(l.Id, l.ProductId, l.ProductName, l.Quantity, l.UnitCost, l.LineTotal)).ToList());
+                .Select(l => new PurchaseLineDto(l.Id, l.ProductId, l.ProductName, l.Quantity, l.UnitCost, l.LineTotal)).ToList(),
+            payments.Select(SupplierPaymentsService.ToDto).ToList());
 }

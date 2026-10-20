@@ -141,6 +141,9 @@ export class AddOnPicker {
             <div class="flex justify-between"><dt class="text-muted">{{ methodLabel(m.method) }}</dt><dd class="tabular-nums">{{ money(m.amount) }}</dd></div>
           }
           <div class="flex justify-between border-t border-line pt-2"><dt class="text-muted">Base</dt><dd class="tabular-nums">{{ money(session().openingCash) }}</dd></div>
+          @if (session().cashOut > 0) {
+            <div class="flex justify-between"><dt class="text-muted">Salidas de caja (gastos y pagos)</dt><dd class="tabular-nums">−{{ money(session().cashOut) }}</dd></div>
+          }
           <div class="flex justify-between font-semibold"><dt>Efectivo esperado en el cajón</dt><dd class="tabular-nums">{{ money(session().expectedCash) }}</dd></div>
         </dl>
 

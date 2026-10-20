@@ -24,6 +24,9 @@
         <h1 class="text-2xl font-extrabold tracking-tight">Vender</h1>
         <p class="flex items-center gap-2 text-sm text-muted">
           Caja de {{ current.userName }} · {{ current.salesCount }} venta(s) · {{ money(current.salesTotal) }}
+          <button type="button" class="btn-ghost px-2.5 py-1.5" (click)="cashOut()">
+            <ng-icon name="heroArrowUpTray" size="16" /> Salida
+          </button>
           <button type="button" class="btn-ghost px-2.5 py-1.5" (click)="closeCash(current)">
             <ng-icon name="heroLockClosed" size="16" /> Cerrar caja
           </button>
