@@ -1,0 +1,11 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Ventia.Api/Ventia.Api.csproj" />
+    <Project Path="src/Ventia.Application/Ventia.Application.csproj" />
+    <Project Path="src/Ventia.Domain/Ventia.Domain.csproj" />
+    <Project Path="src/Ventia.Infrastructure/Ventia.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Ventia.Tests/Ventia.Tests.csproj" />
+  </Folder>
+</Solution>

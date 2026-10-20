@@ -1,0 +1,16 @@
+namespace Ventia.Application.Common;
+
+/// <summary>el recurso no existe o es de otro negocio (no se distingue a proposito) y responde 404</summary>
+public class NotFoundException(string resource) : Exception($"{resource} no existe.");
+
+/// <summary>se viola una regla de negocio y responde 409</summary>
+public class BusinessRuleException(string message) : Exception(message);
+
+/// <summary>dato invalido que solo se puede comprobar contra la base de datos (400 asociado al campo)</summary>
+public class FieldValidationException(string field, string message) : Exception(message)
+{
+    public string Field { get; } = field;
+}
+
+/// <summary>credenciales o sesion invalidas y responde 401</summary>
+public class AuthenticationFailedException(string message) : Exception(message);

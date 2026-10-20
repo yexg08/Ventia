@@ -1,0 +1,89 @@
+@import 'tailwindcss';
+
+/* modo oscuro por clase (.dark en html) que pone el script de index.html segun la preferencia guardada o la del sistema */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * tokens de Ventia (base neutra para las fases funcionales y el diseno final llega en la fase 9)
+ * cada color tiene version clara y oscura con light-dark() y el navegador elige segun color-scheme
+ * contrastes verificados con la formula de luminancia de WCAG (minimo 4.5 a 1 sobre bg y surface y surface-2)
+ */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --color-bg: light-dark(#fafaf9, #0c0a09);
+  --color-surface: light-dark(#ffffff, #171412);
+  --color-surface-2: light-dark(#f5f5f4, #221e1b);
+  --color-line: light-dark(#e7e5e4, #36312d);
+  --color-ink: light-dark(#1c1917, #fafaf9);
+  --color-muted: light-dark(#57534e, #b5aea8);
+  --color-faint: light-dark(#6b645e, #9a928b);
+  --color-accent: light-dark(#c2410c, #fdba74);
+  --color-danger: light-dark(#b91c1c, #fca5a5);
+  --color-success: light-dark(#15803d, #86efac);
+
+  /* color solido de marca con texto blanco encima en los dos temas */
+  --color-brand: #c2410c;
+}
+
+:root {
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
+}
+
+body {
+  @apply bg-bg font-sans text-ink antialiased;
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@utility bg-brand {
+  background-color: var(--color-brand);
+}
+
+@utility text-brand {
+  color: var(--color-accent);
+}
+
+@utility btn {
+  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+/* minimalista (el boton principal usa el color del texto y el fondo de la pagina invertidos) */
+@utility btn-primary {
+  @apply btn bg-ink text-bg hover:opacity-90;
+}
+
+@utility btn-secondary {
+  @apply btn border border-line bg-surface text-ink hover:bg-surface-2;
+}
+
+@utility btn-ghost {
+  @apply btn text-muted hover:bg-surface-2 hover:text-ink;
+}
+
+@utility btn-danger {
+  @apply btn bg-red-700 text-white hover:bg-red-800;
+}
+
+@utility field-label {
+  @apply mb-1.5 block text-sm font-medium text-ink;
+}
+
+@utility field-input {
+  @apply w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink transition placeholder:text-faint focus:border-accent focus:outline-none aria-invalid:border-danger;
+}
+
+@utility field-error {
+  @apply mt-1.5 text-xs font-medium text-danger;
+}
+
+@utility card {
+  @apply rounded-2xl border border-line bg-surface;
+}

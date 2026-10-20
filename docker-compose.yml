@@ -1,0 +1,47 @@
+name: ventia
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: ventia-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ventia
+      POSTGRES_USER: ventia
+      # solo para desarrollo local (debe coincidir con appsettings.Development.json)
+      POSTGRES_PASSWORD: ventia_dev_password
+      TZ: UTC
+    ports:
+      # 5435 para no chocar con otros PostgreSQL locales (AIS Dashboard 5433 y Flow 5434)
+      - "5435:5432"
+    volumes:
+      - ventia_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ventia -d ventia"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # la app completa (API y frontend) con docker compose --profile app up --build
+  # sin el perfil app solo se levanta la base de datos (para desarrollar con dotnet run y npm start)
+  app:
+    profiles: ["app"]
+    build: .
+    image: ventia-app
+    container_name: ventia-app
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      # 8081 para poder tener Flow en el 8080 al mismo tiempo
+      - "8081:8080"
+    environment:
+      ConnectionStrings__Default: Host=postgres;Port=5432;Database=ventia;Username=ventia;Password=ventia_dev_password
+      Jwt__Key: ${JWT_KEY:-}
+      Seed__SuperAdminPassword: ${SUPERADMIN_PASSWORD:-}
+      # el contenedor se prueba por http en localhost (en produccion va detras de https)
+      Https__Redirect: "false"
+
+volumes:
+  ventia_data:

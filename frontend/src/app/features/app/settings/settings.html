@@ -1,0 +1,127 @@
+<div class="mx-auto max-w-3xl">
+  <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">Configuración</h1>
+  <p class="mt-1 text-muted">Los datos de tu negocio que aparecen en los comprobantes.</p>
+
+  @if (business.isLoading() && !business.hasValue()) {
+    <div class="card mt-8 h-96 animate-pulse bg-surface-2" aria-label="Cargando configuración"></div>
+  } @else if (business.error()) {
+    <div class="card mt-8 p-8 text-center">
+      <p class="font-semibold">No se pudo cargar la configuración.</p>
+      <button type="button" class="btn-secondary mt-4" (click)="business.reload()">Reintentar</button>
+    </div>
+  } @else {
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="mt-8 space-y-6">
+      @if (error()) {
+        <p class="rounded-xl border border-danger/40 bg-danger/10 px-3.5 py-2.5 text-sm text-danger" role="alert">{{ error() }}</p>
+      }
+
+      <section class="card space-y-5 p-6" aria-labelledby="identity-title">
+        <h2 id="identity-title" class="font-bold">Datos del negocio</h2>
+        <div>
+          <label for="name" class="field-label">Nombre del negocio</label>
+          <input id="name" formControlName="name" class="field-input" [attr.aria-invalid]="invalid('name')" />
+          @if (invalid('name')) {
+            <p class="field-error">{{ serverErrors()['name'] ?? 'Escribe el nombre del negocio.' }}</p>
+          }
+        </div>
+
+        <div>
+          <label for="taxId" class="field-label">NIT <span class="font-normal text-faint">(opcional)</span></label>
+          <input
+            id="taxId"
+            formControlName="taxId"
+            placeholder="900123456-8"
+            autocomplete="off"
+            class="field-input"
+            aria-describedby="taxId-hint"
+            [attr.aria-invalid]="invalid('taxId')"
+          />
+          @if (invalid('taxId')) {
+            <p id="taxId-hint" class="field-error">
+              {{ serverErrors()['taxId'] ?? 'Escribe el NIT con el dígito de verificación después del guion (revisa que el dígito sea correcto).' }}
+            </p>
+          } @else {
+            <p id="taxId-hint" class="mt-1.5 text-xs text-faint">Con el dígito de verificación después del guion. Lo validamos con el algoritmo de la DIAN.</p>
+          }
+        </div>
+
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div>
+            <label for="address" class="field-label">Dirección <span class="font-normal text-faint">(opcional)</span></label>
+            <input id="address" formControlName="address" autocomplete="street-address" class="field-input" [attr.aria-invalid]="invalid('address')" />
+            @if (invalid('address')) {
+              <p class="field-error">{{ serverErrors()['address'] ?? 'Máximo 120 caracteres.' }}</p>
+            }
+          </div>
+          <div>
+            <label for="city" class="field-label">Ciudad <span class="font-normal text-faint">(opcional)</span></label>
+            <input id="city" formControlName="city" class="field-input" [attr.aria-invalid]="invalid('city')" />
+            @if (invalid('city')) {
+              <p class="field-error">{{ serverErrors()['city'] ?? 'Máximo 60 caracteres.' }}</p>
+            }
+          </div>
+        </div>
+
+        <div>
+          <label for="phone" class="field-label">Teléfono <span class="font-normal text-faint">(opcional)</span></label>
+          <input id="phone" type="tel" formControlName="phone" autocomplete="tel" placeholder="300 123 4567" class="field-input" [attr.aria-invalid]="invalid('phone')" />
+          @if (invalid('phone')) {
+            <p class="field-error">{{ serverErrors()['phone'] ?? 'Escribe un teléfono válido (de 7 a 15 dígitos).' }}</p>
+          }
+        </div>
+      </section>
+
+      <section class="card space-y-5 p-6" aria-labelledby="sales-title">
+        <h2 id="sales-title" class="font-bold">Ventas</h2>
+
+        <fieldset>
+          <legend class="field-label">Impuesto por defecto de los productos nuevos</legend>
+          <div class="grid gap-2 sm:grid-cols-2">
+            @for (option of taxOptions; track option.value) {
+              <label
+                class="flex cursor-pointer items-start gap-3 rounded-xl border border-line p-3.5 transition has-[:checked]:border-accent has-[:checked]:bg-surface-2"
+              >
+                <input type="radio" formControlName="defaultTax" [value]="option.value" class="mt-1 accent-accent" />
+                <span>
+                  <span class="block text-sm font-semibold">{{ option.label }}</span>
+                  <span class="block text-xs text-muted">{{ option.hint }}</span>
+                </span>
+              </label>
+            }
+          </div>
+          <p class="mt-2 text-xs text-faint">Los precios se escriben con el impuesto incluido. Cada producto puede tener el suyo.</p>
+        </fieldset>
+
+        <div>
+          <label for="timeZone" class="field-label">Zona horaria</label>
+          <select id="timeZone" formControlName="timeZone" class="field-input">
+            @for (tz of timeZones; track tz.id) {
+              <option [value]="tz.id">{{ tz.label }}</option>
+            }
+          </select>
+        </div>
+
+        <div>
+          <label for="receiptFooter" class="field-label">Mensaje al pie del comprobante <span class="font-normal text-faint">(opcional)</span></label>
+          <textarea
+            id="receiptFooter"
+            formControlName="receiptFooter"
+            rows="2"
+            placeholder="¡Gracias por tu compra!"
+            class="field-input resize-none"
+            [attr.aria-invalid]="invalid('receiptFooter')"
+          ></textarea>
+          @if (invalid('receiptFooter')) {
+            <p class="field-error">{{ serverErrors()['receiptFooter'] ?? 'Máximo 200 caracteres.' }}</p>
+          }
+        </div>
+      </section>
+
+      <div class="flex justify-end">
+        <button type="submit" class="btn-primary px-6" [disabled]="saving() || form.pristine">
+          {{ saving() ? 'Guardando…' : 'Guardar cambios' }}
+        </button>
+      </div>
+    </form>
+  }
+</div>
