@@ -30,7 +30,7 @@ import { NewCashierDialog, TemporaryPasswordData, TemporaryPasswordDialog } from
       </div>
 
       @if (users.isLoading() && users.value().length === 0) {
-        <div class="card mt-8 h-48 animate-pulse bg-surface-2" aria-label="Cargando usuarios"></div>
+        <div class="card mt-8 h-48 skeleton !bg-surface-2" aria-label="Cargando usuarios"></div>
       } @else if (users.error()) {
         <div class="card mt-8 p-8 text-center">
           <p class="font-semibold">No se pudieron cargar los usuarios.</p>

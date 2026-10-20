@@ -24,7 +24,7 @@ const REASONS: Record<StockAdjustmentKind, string[]> = {
   imports: [ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="card w-[min(30rem,calc(100vw-2rem))] shadow-2xl" aria-labelledby="stock-title">
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="card w-[min(30rem,calc(100vw-2rem))] !shadow-2xl" aria-labelledby="stock-title">
       <div class="border-b border-line px-6 py-4">
         <h2 id="stock-title" class="text-lg font-bold">Ajustar stock</h2>
         <p class="text-sm text-muted">{{ product.name }} · hay <strong class="text-ink">{{ product.stock }}</strong> unidades</p>
@@ -155,7 +155,7 @@ const MOVEMENT_LABELS: Record<StockMovementType, string> = {
   selector: 'app-stock-movements-dialog',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(42rem,calc(100vw-2rem))] flex-col shadow-2xl" role="dialog" aria-labelledby="movements-title">
+    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(42rem,calc(100vw-2rem))] flex-col !shadow-2xl" role="dialog" aria-labelledby="movements-title">
       <div class="border-b border-line px-6 py-4">
         <h2 id="movements-title" class="text-lg font-bold">Movimientos de inventario</h2>
         <p class="text-sm text-muted">{{ product.name }} · stock actual {{ product.stock }}</p>
@@ -163,7 +163,7 @@ const MOVEMENT_LABELS: Record<StockMovementType, string> = {
 
       <div class="overflow-y-auto">
         @if (movements.isLoading() && movements.value().length === 0) {
-          <div class="m-6 h-32 animate-pulse rounded-xl bg-surface-2"></div>
+          <div class="m-6 h-32 skeleton rounded-xl"></div>
         } @else if (movements.error()) {
           <p class="p-6 text-center text-sm text-muted">No se pudo cargar el historial.</p>
         } @else if (movements.value().length === 0) {

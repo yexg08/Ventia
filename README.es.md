@@ -136,7 +136,7 @@ Las dependencias apuntan hacia adentro:
 | 6 | Gastos, salidas de caja y cuentas por pagar | Hecha |
 | 7 | Reportes y exportación a CSV | Hecha |
 | 8 | Pulido: datos de ejemplo, README bilingüe, capturas | Hecha |
-| 9 | Diseño final: moderno, minimalista y con animaciones suaves | Siguiente |
+| 9 | Diseño final: moderno, minimalista y con animaciones suaves | Hecha |
 
 ## Funciones
 
@@ -211,6 +211,17 @@ Las dependencias apuntan hacia adentro:
   español (punto y coma, coma decimal y UTF-8 con BOM).
 - **Protegidos contra inyección de fórmulas:** un texto que empiece por `=`, `+`, `-` o `@` se exporta como texto, para que
   Excel no lo ejecute.
+
+### Diseño
+
+- Minimalista y cálido, con el naranja de la marca como único color de acento. Tema claro y oscuro, con el contraste
+  verificado contra WCAG AA usando la fórmula de luminancia.
+- **Animaciones suaves, solo con CSS:**
+  - el cambio de página usa el API de View Transitions;
+  - el cambio de tema es un círculo que crece desde el botón;
+  - los diálogos y avisos entran deslizándose, las listas en cascada, las barras de las gráficas crecen y los
+    bloques de carga tienen un brillo.
+- **Movimiento accesible:** todo se apaga para quien pide a su sistema reducir el movimiento.
 
 ### Seguridad
 

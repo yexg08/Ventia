@@ -19,7 +19,7 @@ import { CustomerDialog } from '../parties/customer-dialog';
   providers: [provideIcons({ heroMagnifyingGlass, heroPlus })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] flex-col shadow-2xl" role="dialog" aria-labelledby="picker-title">
+    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] flex-col !shadow-2xl" role="dialog" aria-labelledby="picker-title">
       <div class="space-y-3 border-b border-line px-6 py-4">
         <h2 id="picker-title" class="text-lg font-bold">Elegir cliente</h2>
         <div class="relative">
@@ -72,7 +72,7 @@ export class CustomerPicker {
   providers: [provideIcons({ heroMagnifyingGlass })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100vw-2rem))] flex-col shadow-2xl" role="dialog" aria-labelledby="addon-title">
+    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100vw-2rem))] flex-col !shadow-2xl" role="dialog" aria-labelledby="addon-title">
       <div class="space-y-3 border-b border-line px-6 py-4">
         <h2 id="addon-title" class="text-lg font-bold">Adición para {{ data.parentName }}</h2>
         <div class="relative">
@@ -124,7 +124,7 @@ export class AddOnPicker {
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form (ngSubmit)="close()" class="card flex w-[min(30rem,calc(100vw-2rem))] flex-col shadow-2xl" aria-labelledby="close-title">
+    <form (ngSubmit)="close()" class="card flex w-[min(30rem,calc(100vw-2rem))] flex-col !shadow-2xl" aria-labelledby="close-title">
       <div class="border-b border-line px-6 py-4">
         <h2 id="close-title" class="text-lg font-bold">{{ closed() ? 'Caja cerrada' : 'Cerrar caja' }}</h2>
         <p class="text-sm text-muted">Turno de {{ session().userName }} · abierto {{ time(session().openedAt) }}</p>

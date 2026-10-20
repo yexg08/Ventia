@@ -31,7 +31,7 @@ import { CategoryDialog, CategoryDialogData } from './category-dialog';
       </div>
 
       @if (categories.isLoading() && categories.value().length === 0) {
-        <div class="card mt-8 h-48 animate-pulse bg-surface-2" aria-label="Cargando categorías"></div>
+        <div class="card mt-8 h-48 skeleton !bg-surface-2" aria-label="Cargando categorías"></div>
       } @else if (categories.error()) {
         <div class="card mt-8 p-8 text-center">
           <p class="font-semibold">No se pudieron cargar las categorías.</p>

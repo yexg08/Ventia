@@ -48,7 +48,7 @@
     </div>
 
     @if (products.isLoading() && products.value().length === 0) {
-      <div class="card mt-4 h-64 animate-pulse bg-surface-2" aria-label="Cargando productos"></div>
+      <div class="card mt-4 h-64 skeleton !bg-surface-2" aria-label="Cargando productos"></div>
     } @else if (products.error()) {
       <div class="card mt-4 p-8 text-center">
         <p class="font-semibold">No se pudieron cargar los productos.</p>

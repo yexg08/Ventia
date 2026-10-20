@@ -25,7 +25,7 @@ import { PurchaseDetailDialog } from './purchase-dialogs';
       <p class="mt-1 text-muted">Compras a crédito que todavía le debes a tus proveedores.</p>
 
       @if (payables.isLoading() && payables.value().length === 0) {
-        <div class="card mt-8 h-48 animate-pulse bg-surface-2" aria-label="Cargando cuentas por pagar"></div>
+        <div class="card mt-8 h-48 skeleton !bg-surface-2" aria-label="Cargando cuentas por pagar"></div>
       } @else if (payables.error()) {
         <div class="card mt-8 p-8 text-center">
           <p class="font-semibold">No se pudieron cargar las cuentas por pagar.</p>

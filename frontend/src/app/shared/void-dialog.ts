@@ -19,7 +19,7 @@ export interface VoidDialogData {
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form (ngSubmit)="confirm()" class="card w-[min(28rem,calc(100vw-2rem))] p-6 shadow-2xl" aria-labelledby="void-title">
+    <form (ngSubmit)="confirm()" class="card w-[min(28rem,calc(100vw-2rem))] p-6 !shadow-2xl" aria-labelledby="void-title">
       <h2 id="void-title" class="text-lg font-bold">{{ data.title }}</h2>
       <label for="void-reason" class="field-label mt-4">Motivo de la anulación</label>
       <input id="void-reason" class="field-input" maxlength="200" [(ngModel)]="reason" name="reason" required />

@@ -1,0 +1,127 @@
+<div class="mx-auto max-w-5xl">
+  <div class="animate-enter">
+    <p class="text-sm text-muted first-letter:uppercase">{{ todayLabel }}</p>
+    <h1 class="mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">{{ greeting() }}, {{ firstName() }}</h1>
+  </div>
+
+  <!-- resumen del dia -->
+  @if (auth.isOwner()) {
+    <div class="stagger mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      @if (report.value(); as r) {
+        <div class="card p-5">
+          <p class="text-sm text-muted">Vendido hoy</p>
+          <p class="mt-1 text-2xl font-extrabold tabular-nums">{{ money(r.total) }}</p>
+          <p class="mt-1 text-xs text-faint">{{ r.salesCount }} venta(s)</p>
+        </div>
+        <div class="card p-5">
+          <p class="text-sm text-muted">Ticket promedio</p>
+          <p class="mt-1 text-2xl font-extrabold tabular-nums">{{ money(r.averageTicket) }}</p>
+          <p class="mt-1 text-xs text-faint">{{ r.voidedCount ? r.voidedCount + ' anulada(s)' : 'Ninguna anulada' }}</p>
+        </div>
+      } @else {
+        <div class="skeleton h-28 rounded-2xl"></div>
+        <div class="skeleton h-28 rounded-2xl"></div>
+      }
+      <a routerLink="/app/cuentas-por-pagar" class="card-interactive block p-5">
+        <p class="text-sm text-muted">Por pagar a proveedores</p>
+        <p class="mt-1 text-2xl font-extrabold tabular-nums">{{ money(owed()) }}</p>
+        <p class="mt-1 text-xs text-faint">{{ payables.value().length ? payables.value().length + ' compra(s) a crédito' : 'Estás al día' }}</p>
+      </a>
+      <a routerLink="/app/productos" class="card-interactive block p-5">
+        <p class="text-sm text-muted">Stock bajo</p>
+        <p class="mt-1 text-2xl font-extrabold tabular-nums" [class.text-danger]="(inventory.value()?.lowStock ?? 0) > 0">{{ inventory.value()?.lowStock ?? '—' }}</p>
+        <p class="mt-1 text-xs text-faint">producto(s) por reponer</p>
+      </a>
+    </div>
+  } @else {
+    <!-- el cajero ve el estado de su caja -->
+    <div class="animate-enter mt-6">
+      @if (session.isLoading() && !session.hasValue()) {
+        <div class="skeleton h-28 rounded-2xl"></div>
+      } @else if (session.value(); as s) {
+        <div class="card flex flex-wrap items-center gap-4 p-5">
+          <span class="relative flex size-3 shrink-0" aria-hidden="true">
+            <span class="absolute inline-flex size-full animate-ping rounded-full bg-success opacity-50"></span>
+            <span class="relative inline-flex size-3 rounded-full bg-success"></span>
+          </span>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold">Tu caja está abierta</p>
+            <p class="text-sm text-muted">{{ s.salesCount }} venta(s) en este turno · {{ money(s.salesTotal) }}</p>
+          </div>
+          <a routerLink="/app/vender" class="btn-primary">Seguir vendiendo</a>
+        </div>
+      } @else {
+        <div class="card flex flex-wrap items-center gap-4 p-5">
+          <span class="size-3 shrink-0 rounded-full bg-line" aria-hidden="true"></span>
+          <div class="min-w-0 flex-1">
+            <p class="font-semibold">Aún no has abierto tu caja</p>
+            <p class="text-sm text-muted">Cuenta la base en efectivo y empieza el turno.</p>
+          </div>
+          <a routerLink="/app/vender" class="btn-primary">Abrir caja</a>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- accesos rapidos -->
+  <section class="mt-8" aria-labelledby="actions-title">
+    <h2 id="actions-title" class="text-sm font-semibold text-muted">Accesos rápidos</h2>
+    <ul class="stagger mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      @for (a of actions(); track a.link) {
+        <li>
+          <a [routerLink]="a.link" class="card-interactive group flex h-full flex-col p-4">
+            <span class="flex size-9 items-center justify-center rounded-xl bg-accent-soft text-accent transition duration-300 group-hover:scale-110">
+              <ng-icon [name]="a.icon" size="19" />
+            </span>
+            <span class="mt-4 flex items-center gap-1 font-semibold">
+              {{ a.label }}
+              <ng-icon name="heroArrowRight" size="14" class="text-faint opacity-0 transition duration-300 group-hover:translate-x-0.5 group-hover:opacity-100" />
+            </span>
+            <span class="text-xs text-muted">{{ a.hint }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </section>
+
+  @if (auth.isOwner() && pendingSteps()) {
+    <section class="animate-enter mt-10" aria-labelledby="checklist-title">
+      <div class="flex items-baseline justify-between gap-3">
+        <h2 id="checklist-title" class="text-lg font-bold">Primeros pasos</h2>
+        <p class="text-sm text-muted tabular-nums">{{ doneCount() }} de {{ steps().length }}</p>
+      </div>
+      <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-2" role="progressbar" [attr.aria-valuenow]="doneCount()" aria-valuemin="0" [attr.aria-valuemax]="steps().length" aria-label="Avance de los primeros pasos">
+        <div class="h-full rounded-full bg-accent transition-[width] duration-700 ease-out-soft" [style.width.%]="(doneCount() / steps().length) * 100"></div>
+      </div>
+      <ol class="stagger mt-4 space-y-3">
+        @for (step of steps(); track step.title) {
+          <li class="card flex items-center gap-4 p-4">
+            <span
+              class="flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold transition"
+              [class]="step.done ? 'bg-brand border-transparent text-white' : 'border-line text-muted'"
+            >
+              @if (step.done) {
+                <ng-icon name="heroCheck" size="16" />
+                <span class="sr-only">Hecho:</span>
+              } @else {
+                {{ $index + 1 }}
+              }
+            </span>
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold" [class.text-muted]="step.done">{{ step.title }}</p>
+              <p class="text-sm text-muted">{{ step.text }}</p>
+            </div>
+            @if (step.link && !step.done) {
+              <a [routerLink]="step.link" class="btn-secondary shrink-0">{{ step.action }}</a>
+            }
+          </li>
+        }
+      </ol>
+    </section>
+  }
+
+  <p class="mt-10 flex items-start gap-2 text-xs text-faint">
+    <ng-icon name="heroExclamationTriangle" size="15" class="mt-px shrink-0" />
+    Ventia es una demo: los comprobantes que genere no tienen validez fiscal ante la DIAN.
+  </p>
+</div>

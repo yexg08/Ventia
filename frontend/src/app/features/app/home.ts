@@ -1,11 +1,23 @@
-import { httpResource } from '@angular/common/http';
+import { HttpParams, httpResource } from '@angular/common/http';
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { heroCheck, heroExclamationTriangle } from '@ng-icons/heroicons/outline';
+import {
+  heroArrowRight,
+  heroBanknotes,
+  heroChartBar,
+  heroCheck,
+  heroDocumentText,
+  heroExclamationTriangle,
+  heroInboxArrowDown,
+  heroShoppingCart,
+  heroUserGroup,
+} from '@ng-icons/heroicons/outline';
 import { AuthService } from '../../core/auth/auth.service';
 import { API_BASE } from '../../core/http/api';
-import { BusinessSettings, Category, Product, UserAccount } from './business.models';
+import { localIsoDate } from '../../shared/dates';
+import { formatPrice } from '../../shared/format';
+import { BusinessSettings, CashSession, Category, InventoryReport, Payable, Product, SalesReport, UserAccount } from './business.models';
 
 interface Step {
   title: string;
@@ -15,65 +27,78 @@ interface Step {
   action: string;
 }
 
+interface QuickAction {
+  link: string;
+  label: string;
+  hint: string;
+  icon: string;
+}
+
 @Component({
   selector: 'app-home',
   imports: [RouterLink, NgIcon],
-  providers: [provideIcons({ heroCheck, heroExclamationTriangle })],
+  providers: [
+    provideIcons({
+      heroArrowRight,
+      heroBanknotes,
+      heroChartBar,
+      heroCheck,
+          heroDocumentText,
+      heroExclamationTriangle,
+      heroInboxArrowDown,
+      heroShoppingCart,
+      heroUserGroup,
+    }),
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="mx-auto max-w-3xl">
-      <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">Hola, {{ firstName() }}</h1>
-      <p class="mt-1 text-muted">
-        {{ auth.isOwner() ? 'Prepara tu negocio para empezar a vender.' : 'Este es el panel de ' + (auth.tenant()?.name ?? 'tu negocio') + '.' }}
-      </p>
-
-      <p class="mt-6 flex items-start gap-2 rounded-xl border border-line bg-surface-2 px-4 py-3 text-sm text-muted">
-        <ng-icon name="heroExclamationTriangle" size="18" class="mt-0.5 shrink-0 text-accent" />
-        Ventia es una demo: los comprobantes que genere no tienen validez fiscal ante la DIAN.
-      </p>
-
-      @if (auth.isOwner()) {
-        <section class="mt-8" aria-labelledby="checklist-title">
-          <h2 id="checklist-title" class="text-lg font-bold">Primeros pasos</h2>
-          <ol class="mt-4 space-y-3">
-            @for (step of steps(); track step.title) {
-              <li class="card flex items-center gap-4 p-4">
-                <span
-                  class="flex size-8 shrink-0 items-center justify-center rounded-full border text-sm font-bold"
-                  [class]="step.done ? 'bg-brand border-transparent text-white' : 'border-line text-muted'"
-                >
-                  @if (step.done) {
-                    <ng-icon name="heroCheck" size="16" />
-                    <span class="sr-only">Hecho:</span>
-                  } @else {
-                    {{ $index + 1 }}
-                  }
-                </span>
-                <div class="min-w-0 flex-1">
-                  <p class="font-semibold" [class.text-muted]="step.done">{{ step.title }}</p>
-                  <p class="text-sm text-muted">{{ step.text }}</p>
-                </div>
-                @if (step.link && !step.done) {
-                  <a [routerLink]="step.link" class="btn-secondary shrink-0">{{ step.action }}</a>
-                }
-              </li>
-            }
-          </ol>
-        </section>
-      }
-    </div>
-  `,
+  templateUrl: './home.html',
 })
 export class Home {
   protected readonly auth = inject(AuthService);
+  protected readonly money = formatPrice;
 
-  // solo el dueno ve los primeros pasos (los cajeros no pueden leer cuentas ni cambiar ajustes)
-  private readonly business = httpResource<BusinessSettings>(() => (this.auth.isOwner() ? `${API_BASE}/business` : undefined));
-  private readonly categories = httpResource<Category[]>(() => (this.auth.isOwner() ? `${API_BASE}/categories` : undefined));
-  private readonly products = httpResource<Product[]>(() => (this.auth.isOwner() ? `${API_BASE}/products` : undefined));
-  private readonly users = httpResource<UserAccount[]>(() => (this.auth.isOwner() ? `${API_BASE}/users` : undefined));
+  private readonly today = localIsoDate();
+  private readonly owner = computed(() => this.auth.isOwner());
+
+  // resumen del dia (solo el dueno puede leer reportes y cuentas por pagar)
+  protected readonly report = httpResource<SalesReport>(() =>
+    this.owner() ? { url: `${API_BASE}/reports/sales`, params: new HttpParams().set('from', this.today).set('to', this.today) } : undefined,
+  );
+  protected readonly payables = httpResource<Payable[]>(() => (this.owner() ? `${API_BASE}/payables` : undefined), { defaultValue: [] });
+  protected readonly inventory = httpResource<InventoryReport>(() => (this.owner() ? `${API_BASE}/reports/inventory` : undefined));
+  // turno de caja de quien entra (204 sin cuerpo = no hay caja abierta)
+  protected readonly session = httpResource<CashSession | null>(() => `${API_BASE}/cash-sessions/current`);
+
+  // primeros pasos (solo el dueno puede leer cuentas y ajustes)
+  private readonly business = httpResource<BusinessSettings>(() => (this.owner() ? `${API_BASE}/business` : undefined));
+  private readonly categories = httpResource<Category[]>(() => (this.owner() ? `${API_BASE}/categories` : undefined));
+  private readonly products = httpResource<Product[]>(() => (this.owner() ? `${API_BASE}/products` : undefined));
+  private readonly users = httpResource<UserAccount[]>(() => (this.owner() ? `${API_BASE}/users` : undefined));
 
   protected readonly firstName = computed(() => this.auth.user()?.fullName.split(' ')[0] ?? '');
+  protected readonly greeting = computed(() => {
+    const hour = new Date().getHours();
+    return hour < 12 ? 'Buenos días' : hour < 19 ? 'Buenas tardes' : 'Buenas noches';
+  });
+  protected readonly todayLabel = new Intl.DateTimeFormat('es-CO', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date());
+
+  protected readonly owed = computed(() => this.payables.value().reduce((sum, p) => sum + p.balance, 0));
+
+  protected readonly actions = computed<QuickAction[]>(() =>
+    this.owner()
+      ? [
+          { link: '/app/vender', label: 'Vender', hint: 'Abre la caja y cobra', icon: 'heroShoppingCart' },
+          { link: '/app/compras', label: 'Registrar compra', hint: 'Sube el stock', icon: 'heroInboxArrowDown' },
+          { link: '/app/gastos', label: 'Registrar gasto', hint: 'Arriendo, servicios…', icon: 'heroBanknotes' },
+          { link: '/app/reportes', label: 'Ver reportes', hint: 'Cuánto ganaste', icon: 'heroChartBar' },
+        ]
+      : [
+          { link: '/app/vender', label: 'Vender', hint: 'Abre la caja y cobra', icon: 'heroShoppingCart' },
+          { link: '/app/ventas', label: 'Mis ventas', hint: 'Comprobantes de hoy', icon: 'heroDocumentText' },
+          { link: '/app/clientes', label: 'Clientes', hint: 'Registra a quien pide factura', icon: 'heroUserGroup' },
+          { link: '/app/gastos', label: 'Salidas de caja', hint: 'Efectivo que sacaste', icon: 'heroBanknotes' },
+        ],
+  );
 
   protected readonly steps = computed<Step[]>(() => {
     const business = this.business.hasValue() ? this.business.value() : null;
@@ -112,4 +137,10 @@ export class Home {
       },
     ];
   });
+  /** los primeros pasos se muestran hasta que esten todos hechos (y solo cuando ya cargaron) */
+  protected readonly pendingSteps = computed(() => {
+    const loaded = this.business.hasValue() && this.categories.hasValue() && this.products.hasValue() && this.users.hasValue();
+    return loaded && this.steps().some((s) => !s.done);
+  });
+  protected readonly doneCount = computed(() => this.steps().filter((s) => s.done).length);
 }

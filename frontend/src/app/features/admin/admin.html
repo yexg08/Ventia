@@ -41,7 +41,7 @@
   <!-- listado -->
   <section class="card mt-4 overflow-hidden" aria-label="Negocios">
     @if (tenants.isLoading() && tenants.value().length === 0) {
-      <div class="h-48 animate-pulse bg-surface-2"></div>
+      <div class="h-48 skeleton !bg-surface-2"></div>
     } @else if (tenants.error()) {
       <div class="p-8 text-center">
         <p class="font-semibold">No se pudo cargar el listado.</p>

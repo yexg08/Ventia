@@ -136,7 +136,7 @@ Dependencies point inward:
 | 6 | Expenses, cash taken from the register, and accounts payable | Done |
 | 7 | Reports and CSV export | Done |
 | 8 | Polish: sample data, bilingual README, screenshots | Done |
-| 9 | Final design: modern, minimal, with smooth animations | Next |
+| 9 | Final design: modern, minimal, with smooth animations | Done |
 
 ## Features
 
@@ -230,6 +230,16 @@ Dependencies point inward:
   - The files open with a double click in Spanish-locale Excel: semicolon separator, decimal comma, and UTF-8 with BOM.
   - **Protected against formula injection:** text starting with `=`, `+`, `-` or `@` is exported as plain text, so Excel
     never runs it.
+
+### Design
+
+- Minimal and warm, with the brand orange as the only accent color. Light and dark themes, with contrast checked
+  against WCAG AA using the luminance formula.
+- **Smooth animations, CSS only:**
+  - page changes use the View Transitions API;
+  - the theme switch is a circle that grows from the button;
+  - dialogs and toasts slide in, lists cascade, chart bars grow, and loading placeholders shimmer.
+- **Accessible motion:** everything turns off for people who ask their system for reduced motion.
 
 ### Security
 

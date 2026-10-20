@@ -29,9 +29,9 @@
     <p class="card mt-4 border-danger/40 p-4 text-sm text-danger" role="alert">Elige un periodo de máximo un año.</p>
   } @else if (report.isLoading() && !report.hasValue()) {
     <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      @for (i of [1, 2, 3, 4]; track i) { <div class="card h-28 animate-pulse bg-surface-2"></div> }
+      @for (i of [1, 2, 3, 4]; track i) { <div class="card h-28 skeleton !bg-surface-2"></div> }
     </div>
-    <div class="card mt-4 h-64 animate-pulse bg-surface-2" aria-label="Cargando reportes"></div>
+    <div class="card mt-4 h-64 skeleton !bg-surface-2" aria-label="Cargando reportes"></div>
   } @else if (report.error()) {
     <div class="card mt-6 p-8 text-center">
       <p class="font-semibold">No se pudo cargar el reporte.</p>
@@ -39,7 +39,7 @@
     </div>
   } @else if (report.value(); as r) {
     <!-- indicadores -->
-    <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" [class.opacity-60]="report.isLoading()">
+    <div class="stagger mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 transition-opacity" [class.opacity-60]="report.isLoading()">
       <div class="card p-5">
         <p class="text-sm text-muted">Total vendido</p>
         <p class="mt-1 text-2xl font-extrabold tabular-nums">{{ money(r.total) }}</p>
@@ -88,7 +88,7 @@
         <div class="mt-4 flex h-44 items-end gap-px border-b border-line sm:gap-1" role="img" [attr.aria-label]="'Ventas por día del ' + date(r.from) + ' al ' + date(r.to)">
           @for (d of r.byDay; track d.date) {
             <div class="group relative flex h-full flex-1 items-end">
-              <div class="w-full rounded-t bg-accent/80 transition group-hover:bg-accent" [style.height]="barHeight(d.total, maxDay())"></div>
+              <div class="bar-grow-y w-full rounded-t bg-accent/80 transition-colors group-hover:bg-accent" [style.height]="barHeight(d.total, maxDay())" [style.animation-delay.ms]="$index * 12"></div>
               <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-lg bg-ink px-2 py-1 text-xs whitespace-nowrap text-bg group-hover:block">
                 {{ dayLabel(d.date) }} · {{ money(d.total) }} · {{ d.count }} venta(s)
               </span>
@@ -164,7 +164,7 @@
           <div class="mt-4 flex h-28 items-end gap-0.5 border-b border-line" role="img" [attr.aria-label]="peakHour() ? 'La hora de más venta es ' + hourLabel(peakHour()!.hour) : 'Ventas por hora'">
             @for (h of r.byHour; track h.hour) {
               <div class="group relative flex h-full flex-1 items-end">
-                <div class="w-full rounded-t bg-ink/70 transition group-hover:bg-ink" [style.height]="barHeight(h.total, maxHour())"></div>
+                <div class="bar-grow-y w-full rounded-t bg-ink/70 transition-colors group-hover:bg-ink" [style.height]="barHeight(h.total, maxHour())" [style.animation-delay.ms]="$index * 15"></div>
                 <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-lg bg-ink px-2 py-1 text-xs whitespace-nowrap text-bg group-hover:block">
                   {{ hourLabel(h.hour) }} · {{ money(h.total) }}
                 </span>
@@ -183,7 +183,7 @@
             @for (m of r.byMethod; track m.method) {
               <li>
                 <div class="flex justify-between"><span>{{ methodLabel(m.method) }}</span><span class="tabular-nums">{{ money(m.amount) }} <span class="text-xs text-faint">{{ share(m.amount, r.total) }} %</span></span></div>
-                <div class="mt-1 h-2 rounded-full bg-surface-2"><div class="h-2 rounded-full bg-accent" [style.width.%]="share(m.amount, r.total)"></div></div>
+                <div class="mt-1 h-2 rounded-full bg-surface-2"><div class="bar-grow-x h-2 rounded-full bg-accent" [style.width.%]="share(m.amount, r.total)"></div></div>
               </li>
             }
           </ul>
@@ -247,7 +247,7 @@
           @for (e of r.expensesByCategory; track e.category) {
             <li>
               <div class="flex justify-between"><span>{{ categoryLabel(e.category) }}</span><span class="tabular-nums">{{ money(e.amount) }}</span></div>
-              <div class="mt-1 h-1.5 rounded-full bg-surface-2"><div class="h-1.5 rounded-full bg-ink/70" [style.width.%]="share(e.amount, expensesTotal())"></div></div>
+              <div class="mt-1 h-1.5 rounded-full bg-surface-2"><div class="bar-grow-x h-1.5 rounded-full bg-ink/70" [style.width.%]="share(e.amount, expensesTotal())"></div></div>
             </li>
           }
         </ul>
@@ -286,7 +286,7 @@
     } @else if (inventory.error()) {
       <p class="mt-3 text-sm text-danger">No se pudo cargar el inventario.</p>
     } @else {
-      <div class="mt-3 h-20 animate-pulse rounded-xl bg-surface-2"></div>
+      <div class="mt-3 h-20 skeleton rounded-xl"></div>
     }
   </section>
 

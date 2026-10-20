@@ -20,7 +20,7 @@ export const DIALOG_DEFAULTS: Pick<DialogConfig, 'backdropClass' | 'autoFocus'> 
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div
-      class="card w-[min(28rem,calc(100vw-2rem))] p-6 shadow-2xl"
+      class="card w-[min(28rem,calc(100vw-2rem))] p-6 !shadow-2xl"
       role="alertdialog"
       aria-labelledby="confirm-title"
       aria-describedby="confirm-message"

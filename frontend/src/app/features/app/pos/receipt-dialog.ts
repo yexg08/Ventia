@@ -22,7 +22,7 @@ export interface ReceiptDialogData {
   providers: [provideIcons({ heroPrinter })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] flex-col shadow-2xl print:max-h-none print:w-full print:border-0 print:shadow-none" role="dialog" aria-label="Comprobante de venta">
+    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(26rem,calc(100vw-2rem))] flex-col !shadow-2xl print:max-h-none print:w-full print:border-0 print:shadow-none" role="dialog" aria-label="Comprobante de venta">
       @if (sale(); as s) {
         <div class="overflow-y-auto px-6 py-5 text-sm print:overflow-visible">
           <div class="text-center">
@@ -120,7 +120,7 @@ export interface ReceiptDialogData {
       } @else if (loaded.error()) {
         <p class="p-6 text-center text-sm text-muted">No se pudo cargar la venta.</p>
       } @else {
-        <div class="m-6 h-64 animate-pulse rounded-xl bg-surface-2"></div>
+        <div class="m-6 h-64 skeleton rounded-xl"></div>
       }
     </div>
   `,

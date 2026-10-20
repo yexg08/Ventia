@@ -29,7 +29,7 @@ interface DraftLine {
   providers: [provideIcons({ heroPlus, heroTrash, heroUser, heroXMark })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form (ngSubmit)="save()" class="card flex max-h-[calc(100dvh-2rem)] w-[min(44rem,calc(100vw-2rem))] flex-col shadow-2xl" aria-labelledby="quote-title">
+    <form (ngSubmit)="save()" class="card flex max-h-[calc(100dvh-2rem)] w-[min(44rem,calc(100vw-2rem))] flex-col !shadow-2xl" aria-labelledby="quote-title">
       <div class="border-b border-line px-6 py-4">
         <h2 id="quote-title" class="text-lg font-bold">{{ quote ? 'Editar cotización N.° ' + quote.number : 'Nueva cotización' }}</h2>
         @if (quote) {
@@ -213,7 +213,7 @@ export type QuoteAction = 'edit' | 'changed';
   providers: [provideIcons({ heroPrinter })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100vw-2rem))] flex-col shadow-2xl print:max-h-none print:w-full print:border-0 print:shadow-none" role="dialog" aria-label="Cotización">
+    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(28rem,calc(100vw-2rem))] flex-col !shadow-2xl print:max-h-none print:w-full print:border-0 print:shadow-none" role="dialog" aria-label="Cotización">
       @if (quote(); as q) {
         <div class="overflow-y-auto px-6 py-5 text-sm print:overflow-visible">
           <div class="text-center">
@@ -279,7 +279,7 @@ export type QuoteAction = 'edit' | 'changed';
           </div>
         </div>
       } @else {
-        <div class="m-6 h-64 animate-pulse rounded-xl bg-surface-2"></div>
+        <div class="m-6 h-64 skeleton rounded-xl"></div>
       }
     </div>
   `,

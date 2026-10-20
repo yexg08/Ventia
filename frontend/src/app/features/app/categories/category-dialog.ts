@@ -21,7 +21,7 @@ export interface CategoryDialogData {
       [formGroup]="form"
       (ngSubmit)="save()"
       novalidate
-      class="card flex w-[min(28rem,calc(100vw-2rem))] flex-col shadow-2xl"
+      class="card flex w-[min(28rem,calc(100vw-2rem))] flex-col !shadow-2xl"
       aria-labelledby="category-dialog-title"
     >
       <div class="border-b border-line px-6 py-4">

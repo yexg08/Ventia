@@ -34,6 +34,11 @@ interface NavItem {
   ownerOnly: boolean;
 }
 
+interface NavGroup {
+  label: string;
+  items: NavItem[];
+}
+
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, Logo, ThemeToggle],
@@ -45,24 +50,49 @@ export class Shell {
   protected readonly auth = inject(AuthService);
   protected readonly menuOpen = signal(false);
 
-  private readonly items: NavItem[] = [
-    { path: '/app', label: 'Inicio', icon: 'heroHome', exact: true, ownerOnly: false },
-    { path: '/app/vender', label: 'Vender', icon: 'heroShoppingCart', exact: false, ownerOnly: false },
-    { path: '/app/ventas', label: 'Ventas', icon: 'heroDocumentText', exact: false, ownerOnly: false },
-    { path: '/app/cotizaciones', label: 'Cotizaciones', icon: 'heroDocumentDuplicate', exact: false, ownerOnly: false },
-    { path: '/app/productos', label: 'Productos', icon: 'heroArchiveBox', exact: false, ownerOnly: false },
-    { path: '/app/clientes', label: 'Clientes', icon: 'heroUserGroup', exact: false, ownerOnly: false },
-    { path: '/app/reportes', label: 'Reportes', icon: 'heroChartBar', exact: false, ownerOnly: true },
-    { path: '/app/gastos', label: 'Gastos', icon: 'heroBanknotes', exact: false, ownerOnly: false },
-    { path: '/app/compras', label: 'Compras', icon: 'heroInboxArrowDown', exact: false, ownerOnly: true },
-    { path: '/app/cuentas-por-pagar', label: 'Cuentas por pagar', icon: 'heroClipboardDocumentList', exact: false, ownerOnly: true },
-    { path: '/app/proveedores', label: 'Proveedores', icon: 'heroTruck', exact: false, ownerOnly: true },
-    { path: '/app/categorias', label: 'Categorías', icon: 'heroTag', exact: false, ownerOnly: false },
-    { path: '/app/usuarios', label: 'Usuarios', icon: 'heroUsers', exact: false, ownerOnly: true },
-    { path: '/app/configuracion', label: 'Configuración', icon: 'heroCog6Tooth', exact: false, ownerOnly: true },
+  // el menu va por secciones para que las 15 entradas se lean de un vistazo
+  private readonly groups: NavGroup[] = [
+    {
+      label: 'Operación',
+      items: [
+        { path: '/app', label: 'Inicio', icon: 'heroHome', exact: true, ownerOnly: false },
+        { path: '/app/vender', label: 'Vender', icon: 'heroShoppingCart', exact: false, ownerOnly: false },
+        { path: '/app/ventas', label: 'Ventas', icon: 'heroDocumentText', exact: false, ownerOnly: false },
+        { path: '/app/cotizaciones', label: 'Cotizaciones', icon: 'heroDocumentDuplicate', exact: false, ownerOnly: false },
+        { path: '/app/clientes', label: 'Clientes', icon: 'heroUserGroup', exact: false, ownerOnly: false },
+      ],
+    },
+    {
+      label: 'Inventario',
+      items: [
+        { path: '/app/productos', label: 'Productos', icon: 'heroArchiveBox', exact: false, ownerOnly: false },
+        { path: '/app/categorias', label: 'Categorías', icon: 'heroTag', exact: false, ownerOnly: false },
+        { path: '/app/compras', label: 'Compras', icon: 'heroInboxArrowDown', exact: false, ownerOnly: true },
+        { path: '/app/proveedores', label: 'Proveedores', icon: 'heroTruck', exact: false, ownerOnly: true },
+      ],
+    },
+    {
+      label: 'Finanzas',
+      items: [
+        { path: '/app/reportes', label: 'Reportes', icon: 'heroChartBar', exact: false, ownerOnly: true },
+        { path: '/app/gastos', label: 'Gastos', icon: 'heroBanknotes', exact: false, ownerOnly: false },
+        { path: '/app/cuentas-por-pagar', label: 'Cuentas por pagar', icon: 'heroClipboardDocumentList', exact: false, ownerOnly: true },
+      ],
+    },
+    {
+      label: 'Negocio',
+      items: [
+        { path: '/app/usuarios', label: 'Usuarios', icon: 'heroUsers', exact: false, ownerOnly: true },
+        { path: '/app/configuracion', label: 'Configuración', icon: 'heroCog6Tooth', exact: false, ownerOnly: true },
+      ],
+    },
   ];
 
-  protected readonly nav = computed(() => this.items.filter((item) => !item.ownerOnly || this.auth.isOwner()));
+  protected readonly nav = computed(() =>
+    this.groups
+      .map((group) => ({ ...group, items: group.items.filter((item) => !item.ownerOnly || this.auth.isOwner()) }))
+      .filter((group) => group.items.length > 0),
+  );
   protected readonly roleLabel = computed(() => (this.auth.isOwner() ? 'Dueño' : 'Cajero'));
 
   constructor() {

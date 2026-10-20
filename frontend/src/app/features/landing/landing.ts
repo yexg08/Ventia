@@ -1,78 +1,95 @@
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { heroArrowRight, heroArchiveBox, heroChartBar, heroLockClosed, heroShoppingCart, heroUsers } from '@ng-icons/heroicons/outline';
+import {
+  heroArchiveBox,
+  heroArrowRight,
+  heroBanknotes,
+  heroChartBar,
+  heroCheck,
+  heroCheckCircle,
+  heroDocumentArrowDown,
+  heroLockClosed,
+  heroShoppingCart,
+  heroSparkles,
+  heroUsers,
+} from '@ng-icons/heroicons/outline';
 import { AuthService } from '../../core/auth/auth.service';
+import { formatPrice } from '../../shared/format';
 import { Logo } from '../../shared/logo';
 import { ThemeToggle } from '../../shared/theme-toggle';
 
 @Component({
   selector: 'app-landing',
   imports: [RouterLink, NgIcon, Logo, ThemeToggle],
-  providers: [provideIcons({ heroArrowRight, heroArchiveBox, heroChartBar, heroLockClosed, heroShoppingCart, heroUsers })],
+  providers: [
+    provideIcons({
+      heroArchiveBox,
+      heroArrowRight,
+      heroBanknotes,
+      heroChartBar,
+      heroCheck,
+      heroCheckCircle,
+      heroDocumentArrowDown,
+      heroLockClosed,
+      heroShoppingCart,
+      heroSparkles,
+      heroUsers,
+    }),
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="flex min-h-dvh flex-col">
-      <header class="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-5 sm:px-6">
-        <app-logo />
-        <nav class="flex items-center gap-1" aria-label="Cuenta">
-          <app-theme-toggle />
-          @if (auth.isAuthenticated()) {
-            <a [routerLink]="auth.homeUrl()" class="btn-primary">Ir a mi panel</a>
-          } @else {
-            <a routerLink="/login" class="btn-ghost">Iniciar sesión</a>
-            <a routerLink="/registro" class="btn-primary hidden sm:inline-flex">Crear negocio</a>
-          }
-        </nav>
-      </header>
-
-      <main class="flex-1">
-        <section class="mx-auto max-w-3xl px-4 pt-16 pb-20 text-center sm:px-6 sm:pt-24">
-          <p class="inline-flex rounded-full border border-line px-3 py-1 text-xs font-semibold text-muted">
-            Demo de AndesAiSolutions · en construcción
-          </p>
-          <h1 class="mt-6 text-4xl font-extrabold tracking-tight text-balance sm:text-6xl">
-            Vende, controla tu inventario y entiende tu negocio.
-          </h1>
-          <p class="mx-auto mt-5 max-w-xl text-lg text-pretty text-muted">
-            Ventia es un sistema de ventas pensado para negocios de comida rápida: rápido en la caja y claro para el dueño.
-          </p>
-          <div class="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row">
-            <a routerLink="/registro" class="btn-primary px-6 py-3">
-              Probar la demo <ng-icon name="heroArrowRight" size="18" />
-            </a>
-            <a routerLink="/login" class="btn-secondary px-6 py-3">Ya tengo cuenta</a>
-          </div>
-        </section>
-
-        <section class="mx-auto max-w-6xl px-4 pb-24 sm:px-6" aria-labelledby="features-title">
-          <h2 id="features-title" class="sr-only">Qué incluye</h2>
-          <ul class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            @for (feature of features; track feature.title) {
-              <li class="card p-6">
-                <ng-icon [name]="feature.icon" size="24" class="text-accent" />
-                <h3 class="mt-4 font-bold">{{ feature.title }}</h3>
-                <p class="mt-1.5 text-sm text-muted">{{ feature.text }}</p>
-              </li>
-            }
-          </ul>
-          <p class="mt-8 text-center text-xs text-faint">
-            Es una demo: los comprobantes no tienen validez fiscal ante la DIAN y no se procesan pagos reales.
-          </p>
-        </section>
-      </main>
-    </div>
-  `,
+  templateUrl: './landing.html',
 })
 export class Landing {
   protected readonly auth = inject(AuthService);
+  protected readonly money = formatPrice;
+  protected readonly year = new Date().getFullYear();
 
-  // lo que Ventia hace o hara al terminar sus fases (la demo esta en construccion y asi lo dice la portada)
+  // productos de la vista previa de la caja (solo decorativos)
+  protected readonly previewProducts = [
+    { name: 'Hamburguesa clásica', price: 16000 },
+    { name: 'Perro americano', price: 14000 },
+    { name: 'Salchipapa', price: 13000 },
+    { name: 'Gaseosa 400 ml', price: 4000 },
+    { name: 'Papas a la francesa', price: 6000 },
+    { name: 'Limonada de coco', price: 9000 },
+  ];
+  protected readonly previewOrder = [
+    { name: 'Hamburguesa clásica', detail: 'Sin cebolla', quantity: 2, total: 32000 },
+    { name: '+ Queso extra', detail: '', quantity: 1, total: 3000 },
+    { name: 'Gaseosa 400 ml', detail: '', quantity: 2, total: 8000 },
+  ];
+  protected readonly previewBars = [38, 52, 44, 70, 58, 86, 74];
+
   protected readonly features = [
-    { icon: 'heroShoppingCart', title: 'Punto de venta ágil', text: 'Menú por categorías, notas por producto, pagos en efectivo, tarjeta o transferencia.' },
-    { icon: 'heroArchiveBox', title: 'Inventario sin sorpresas', text: 'Cada venta descuenta el stock y el sistema nunca deja vender lo que no hay.' },
-    { icon: 'heroChartBar', title: 'Reportes claros', text: 'Ventas por día, producto y medio de pago, y el cierre de caja de cada turno.' },
-    { icon: 'heroUsers', title: 'Cuentas para tu equipo', text: 'Cada cajero entra con su cuenta y no ve costos ni márgenes.' },
-    { icon: 'heroLockClosed', title: 'Tus datos son solo tuyos', text: 'Cada negocio ve únicamente su información, nunca la de otro.' },
+    {
+      icon: 'heroShoppingCart',
+      title: 'Una caja que no se queda atrás',
+      text: 'Menú por categorías, lector de código de barras, notas para la cocina, adiciones y pago mixto con el cambio calculado.',
+      wide: true,
+    },
+    { icon: 'heroArchiveBox', title: 'Inventario sin sorpresas', text: 'Cada venta descuenta el stock y nunca deja vender lo que no hay.', wide: false },
+    { icon: 'heroChartBar', title: 'Sabes cuánto ganas', text: 'Utilidad real con el costo de cada venta, horas pico y lo más vendido.', wide: false },
+    { icon: 'heroBanknotes', title: 'Compras, gastos y caja', text: 'Cuentas por pagar con abonos, salidas de caja y cierres que cuadran solos.', wide: false },
+    { icon: 'heroUsers', title: 'Cuentas para tu equipo', text: 'Cada cajero entra con su cuenta y no ve costos ni márgenes.', wide: false },
+    {
+      icon: 'heroLockClosed',
+      title: 'Tus datos son solo tuyos',
+      text: 'Cada negocio ve únicamente su información. El aislamiento se aplica en tres capas y está cubierto por pruebas.',
+      wide: true,
+    },
+  ];
+
+  protected readonly guarantees = [
+    'El stock nunca queda negativo, ni con dos cajas vendiendo a la vez',
+    'Un doble clic al cobrar crea una sola venta',
+    'Los consecutivos no tienen saltos ni repetidos',
+    'Los abonos nunca superan lo que le debes al proveedor',
+  ];
+
+  protected readonly steps = [
+    { title: 'Crea tu negocio', text: 'Con tu NIT y el impuesto que cobras: INC u IVA.' },
+    { title: 'Arma tu menú', text: 'Categorías, precios y qué productos llevan inventario.' },
+    { title: 'Abre la caja y vende', text: 'Tus cajeros entran con su cuenta. Tú ves los reportes.' },
   ];
 }

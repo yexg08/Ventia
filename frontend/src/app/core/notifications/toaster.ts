@@ -12,7 +12,7 @@ import { ToastService } from './toast.service';
     <div class="pointer-events-none fixed inset-x-0 bottom-4 z-[1100] flex flex-col items-center gap-2 px-4" aria-live="polite">
       @for (toast of toasts.toasts(); track toast.id) {
         <div
-          class="card pointer-events-auto flex w-full max-w-md items-start gap-3 px-4 py-3 shadow-2xl shadow-black/20"
+          class="card animate-toast pointer-events-auto flex w-full max-w-md items-start gap-3 px-4 py-3 !shadow-2xl shadow-black/20 backdrop-blur-xl"
           [attr.role]="toast.kind === 'error' ? 'alert' : 'status'"
         >
           @switch (toast.kind) {

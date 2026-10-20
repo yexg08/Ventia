@@ -20,7 +20,7 @@ type Field = 'documentNumber' | 'name' | 'phone' | 'email' | 'address' | 'notes'
       [formGroup]="form"
       (ngSubmit)="save()"
       novalidate
-      class="card flex max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] flex-col shadow-2xl"
+      class="card flex max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] flex-col !shadow-2xl"
       aria-labelledby="customer-dialog-title"
     >
       <div class="border-b border-line px-6 py-4">

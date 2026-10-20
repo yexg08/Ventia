@@ -15,7 +15,7 @@ import { TemporaryPassword } from '../business.models';
   imports: [ReactiveFormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="card w-[min(28rem,calc(100vw-2rem))] p-6 shadow-2xl" aria-labelledby="cashier-title">
+    <form [formGroup]="form" (ngSubmit)="save()" novalidate class="card w-[min(28rem,calc(100vw-2rem))] p-6 !shadow-2xl" aria-labelledby="cashier-title">
       <h2 id="cashier-title" class="text-lg font-bold">Nuevo cajero</h2>
       <p class="mt-1 text-sm text-muted">Podrá vender y ver el menú. No verá costos ni podrá cambiar la configuración del negocio.</p>
 
@@ -97,7 +97,7 @@ export interface TemporaryPasswordData {
   providers: [provideIcons({ heroCheck, heroClipboardDocument, heroExclamationTriangle, heroKey })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="card w-[min(30rem,calc(100vw-2rem))] p-6 shadow-2xl" role="dialog" aria-labelledby="temp-title">
+    <div class="card w-[min(30rem,calc(100vw-2rem))] p-6 !shadow-2xl" role="dialog" aria-labelledby="temp-title">
       <div class="flex size-11 items-center justify-center rounded-xl bg-surface-2 text-accent"><ng-icon name="heroKey" size="22" /></div>
       <h2 id="temp-title" class="mt-4 text-lg font-bold">Cuenta lista para {{ data.name }}</h2>
       <p class="mt-1 text-sm text-muted">Entra con <strong class="text-ink">{{ data.result.email }}</strong> y esta contraseña temporal:</p>

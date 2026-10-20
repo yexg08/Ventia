@@ -40,7 +40,7 @@ import { NewPurchaseDialog, PurchaseDetailDialog } from './purchase-dialogs';
       </div>
 
       @if (purchases.isLoading() && purchases.value().length === 0) {
-        <div class="card mt-4 h-48 animate-pulse bg-surface-2" aria-label="Cargando compras"></div>
+        <div class="card mt-4 h-48 skeleton !bg-surface-2" aria-label="Cargando compras"></div>
       } @else if (purchases.error()) {
         <div class="card mt-4 p-8 text-center">
           <p class="font-semibold">No se pudieron cargar las compras.</p>

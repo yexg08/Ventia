@@ -27,7 +27,7 @@ export interface NewExpenseDialogData {
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form (ngSubmit)="save()" class="card flex max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] flex-col shadow-2xl" aria-labelledby="expense-title">
+    <form (ngSubmit)="save()" class="card flex max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] flex-col !shadow-2xl" aria-labelledby="expense-title">
       <div class="border-b border-line px-6 py-4">
         <h2 id="expense-title" class="text-lg font-bold">{{ data.cashOnly ? 'Salida de caja' : 'Nuevo gasto' }}</h2>
         <p class="text-sm text-muted">{{ data.cashOnly ? 'Efectivo que sacas del cajón para pagar algo del negocio.' : 'Lo que gasta el negocio fuera de las compras de mercancía.' }}</p>
@@ -154,7 +154,7 @@ export interface PaySupplierDialogData {
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form (ngSubmit)="save()" class="card flex max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] flex-col shadow-2xl" aria-labelledby="pay-title">
+    <form (ngSubmit)="save()" class="card flex max-h-[calc(100dvh-2rem)] w-[min(30rem,calc(100vw-2rem))] flex-col !shadow-2xl" aria-labelledby="pay-title">
       <div class="border-b border-line px-6 py-4">
         <h2 id="pay-title" class="text-lg font-bold">Pagar compra N.° {{ data.number }}</h2>
         <p class="text-sm text-muted">{{ data.supplierName }} · saldo {{ money(data.balance) }}</p>

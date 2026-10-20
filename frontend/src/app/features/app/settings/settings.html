@@ -3,7 +3,7 @@
   <p class="mt-1 text-muted">Los datos de tu negocio que aparecen en los comprobantes.</p>
 
   @if (business.isLoading() && !business.hasValue()) {
-    <div class="card mt-8 h-96 animate-pulse bg-surface-2" aria-label="Cargando configuración"></div>
+    <div class="card mt-8 h-96 skeleton !bg-surface-2" aria-label="Cargando configuración"></div>
   } @else if (business.error()) {
     <div class="card mt-8 p-8 text-center">
       <p class="font-semibold">No se pudo cargar la configuración.</p>

@@ -26,7 +26,7 @@ type Field = 'categoryId' | 'name' | 'code' | 'barcode' | 'price' | 'cost' | 'mi
       [formGroup]="form"
       (ngSubmit)="save()"
       novalidate
-      class="card flex max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100vw-2rem))] flex-col shadow-2xl"
+      class="card flex max-h-[calc(100dvh-2rem)] w-[min(36rem,calc(100vw-2rem))] flex-col !shadow-2xl"
       aria-labelledby="product-dialog-title"
     >
       <div class="border-b border-line px-6 py-4">

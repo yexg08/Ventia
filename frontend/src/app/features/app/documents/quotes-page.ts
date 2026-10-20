@@ -39,7 +39,7 @@ import { QuoteAction, QuoteDetailDialog, QuoteEditorDialog } from './quote-dialo
       </div>
 
       @if (quotes.isLoading() && quotes.value().length === 0) {
-        <div class="card mt-4 h-48 animate-pulse bg-surface-2" aria-label="Cargando cotizaciones"></div>
+        <div class="card mt-4 h-48 skeleton !bg-surface-2" aria-label="Cargando cotizaciones"></div>
       } @else if (quotes.error()) {
         <div class="card mt-4 p-8 text-center">
           <p class="font-semibold">No se pudieron cargar las cotizaciones.</p>

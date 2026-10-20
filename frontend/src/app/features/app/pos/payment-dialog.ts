@@ -29,7 +29,7 @@ interface PaymentRow {
   providers: [provideIcons({ heroPlus, heroXMark })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form (ngSubmit)="charge()" class="card flex w-[min(30rem,calc(100vw-2rem))] flex-col shadow-2xl" aria-labelledby="pay-title">
+    <form (ngSubmit)="charge()" class="card flex w-[min(30rem,calc(100vw-2rem))] flex-col !shadow-2xl" aria-labelledby="pay-title">
       <div class="border-b border-line px-6 py-4">
         <h2 id="pay-title" class="text-lg font-bold">Cobrar</h2>
         <p class="mt-1 text-3xl font-extrabold tabular-nums">{{ money(data.total) }}</p>

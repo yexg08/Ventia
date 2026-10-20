@@ -1,5 +1,5 @@
 @if (session.isLoading() && !session.hasValue()) {
-  <div class="card mx-auto mt-10 h-48 max-w-md animate-pulse bg-surface-2" aria-label="Cargando caja"></div>
+  <div class="card mx-auto mt-10 h-48 max-w-md skeleton !bg-surface-2" aria-label="Cargando caja"></div>
 } @else if (session.error()) {
   <div class="card mx-auto mt-10 max-w-md p-8 text-center">
     <p class="font-semibold">No se pudo consultar tu caja.</p>
@@ -60,7 +60,7 @@
       @if (products.isLoading() && products.value().length === 0) {
         <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           @for (i of [1, 2, 3, 4, 5, 6]; track i) {
-            <div class="card h-24 animate-pulse bg-surface-2"></div>
+            <div class="card h-24 skeleton !bg-surface-2"></div>
           }
         </div>
       } @else if (visibleProducts().length === 0) {
@@ -79,7 +79,7 @@
             <li>
               <button
                 type="button"
-                class="card flex h-full w-full flex-col items-start p-3.5 text-left transition hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+                class="card flex h-full w-full flex-col items-start p-3.5 text-left transition duration-200 ease-out hover:-translate-y-0.5 hover:border-accent hover:shadow-lifted active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
                 [disabled]="left !== null && left <= 0"
                 (click)="add(p)"
               >
@@ -135,7 +135,7 @@
       <ul class="min-h-24 flex-1 divide-y divide-line overflow-y-auto">
         @for (line of orderedLines(); track line.key) {
           @let a = amounts(line);
-          <li class="px-4 py-3" [class.pl-9]="line.parentKey" [class.bg-surface-2]="line.parentKey">
+          <li class="animate-enter px-4 py-3" [class.pl-9]="line.parentKey" [class.bg-surface-2]="line.parentKey">
             <div class="flex items-start gap-2">
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-semibold">{{ line.parentKey ? '+ ' : '' }}{{ line.product.name }}</p>

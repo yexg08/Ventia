@@ -27,7 +27,7 @@ interface DraftLine {
   providers: [provideIcons({ heroPlus, heroTrash })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <form (ngSubmit)="save()" class="card flex max-h-[calc(100dvh-2rem)] w-[min(44rem,calc(100vw-2rem))] flex-col shadow-2xl" aria-labelledby="purchase-title">
+    <form (ngSubmit)="save()" class="card flex max-h-[calc(100dvh-2rem)] w-[min(44rem,calc(100vw-2rem))] flex-col !shadow-2xl" aria-labelledby="purchase-title">
       <div class="border-b border-line px-6 py-4">
         <h2 id="purchase-title" class="text-lg font-bold">Nueva compra</h2>
         <p class="text-sm text-muted">Sube el stock de cada producto y recalcula su costo promedio.</p>
@@ -230,7 +230,7 @@ export class NewPurchaseDialog {
   imports: [FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] flex-col shadow-2xl" role="dialog" aria-labelledby="purchase-detail-title">
+    <div class="card flex max-h-[calc(100dvh-2rem)] w-[min(34rem,calc(100vw-2rem))] flex-col !shadow-2xl" role="dialog" aria-labelledby="purchase-detail-title">
       @if (purchase(); as p) {
         <div class="border-b border-line px-6 py-4">
           <h2 id="purchase-detail-title" class="text-lg font-bold">Compra N.° {{ p.number }}</h2>
@@ -305,7 +305,7 @@ export class NewPurchaseDialog {
           }
         </div>
       } @else {
-        <div class="m-6 h-48 animate-pulse rounded-xl bg-surface-2"></div>
+        <div class="m-6 h-48 skeleton rounded-xl"></div>
       }
     </div>
   `,
