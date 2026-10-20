@@ -24,7 +24,7 @@ public class TimestampInterceptor(TimeProvider timeProvider) : SaveChangesInterc
     private void Apply(DbContext? context)
     {
         if (context is null) return;
-        var now = timeProvider.GetUtcNow().UtcDateTime;
+        var now = timeProvider.GetUtcNow().UtcDateTime.ToMicroseconds();
         foreach (var entry in context.ChangeTracker.Entries<Entity>())
         {
             if (entry.State == EntityState.Added)

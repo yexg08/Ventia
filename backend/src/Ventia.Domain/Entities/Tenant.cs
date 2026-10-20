@@ -27,6 +27,9 @@ public class Tenant : Entity
     /// <summary>texto al pie del comprobante (por ejemplo gracias por tu compra)</summary>
     public string? ReceiptFooter { get; set; }
 
+    /// <summary>ultimo consecutivo de venta usado (se incrementa dentro de la transaccion de cada venta)</summary>
+    public int LastSaleNumber { get; set; }
+
     /// <summary>
     /// un negocio suspendido por el superadmin no puede iniciar sesion y sus sesiones abiertas se cortan de inmediato
     /// no se borra nada (se puede reactivar)

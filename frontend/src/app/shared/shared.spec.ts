@@ -1,6 +1,7 @@
 import { formatPrice, readableTextOn } from './format';
 import { splitTax } from './taxes';
 import { isPerson, normalizeDocument } from './documents';
+import { cartTotals, changeFor, lineAmounts } from './cart';
 import { nitCheckDigit, normalizeNit } from './nit';
 
 describe('nitCheckDigit (mismo algoritmo que Nit.cs en el backend)', () => {
@@ -78,5 +79,33 @@ describe('normalizeDocument (misma regla que Documents.cs en el backend)', () =>
   it('solo las personas necesitan autorización de datos', () => {
     expect(isPerson('CC')).toBe(true);
     expect(isPerson('NIT')).toBe(false);
+  });
+});
+
+describe('carrito (misma matemática que SalesService en el backend)', () => {
+  it('calcula descuento, total y desglose por línea', () => {
+    expect(lineAmounts({ unitPrice: 18000, quantity: 2, discountPercent: 10, tax: 'Inc8' })).toEqual({
+      gross: 36000,
+      discount: 3600,
+      total: 32400,
+      base: 30000,
+      tax: 2400,
+    });
+  });
+
+  it('suma el pedido igual que el servidor', () => {
+    const totals = cartTotals([
+      { unitPrice: 18000, quantity: 2, discountPercent: 10, tax: 'Inc8' },
+      { unitPrice: 4000, quantity: 3, discountPercent: 0, tax: 'Inc8' },
+    ]);
+    expect(totals.total).toBe(44400);
+    expect(totals.discountTotal).toBe(3600);
+    expect(totals.subtotal + totals.taxTotal).toBeCloseTo(totals.total, 2);
+  });
+
+  it('calcula el cambio o avisa si el efectivo no alcanza', () => {
+    expect(changeFor(44400, 50000)).toBe(5600);
+    expect(changeFor(44400, 44400)).toBe(0);
+    expect(changeFor(44400, 40000)).toBeNull();
   });
 });

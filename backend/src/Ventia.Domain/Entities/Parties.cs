@@ -38,6 +38,12 @@ public class Customer : Entity, ITenantOwned
     /// es obligatorio para personas y opcional para empresas con NIT
     /// </summary>
     public DateTime? DataConsentAt { get; set; }
+
+    /// <summary>
+    /// se pidio borrar sus datos pero tiene ventas (se borraron sus datos personales y se conserva el registro
+    /// para que las ventas no queden huerfanas) y ya no aparece en las busquedas
+    /// </summary>
+    public bool IsAnonymized { get; set; }
 }
 
 /// <summary>proveedor del negocio (a quien se le compra la mercancia en la fase 5)</summary>

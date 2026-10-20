@@ -7,7 +7,9 @@ import {
   heroArchiveBox,
   heroBars3,
   heroCog6Tooth,
+  heroDocumentText,
   heroHome,
+  heroShoppingCart,
   heroTag,
   heroTruck,
   heroUserGroup,
@@ -30,7 +32,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, Logo, ThemeToggle],
-  providers: [provideIcons({ heroArrowRightOnRectangle, heroArchiveBox, heroBars3, heroCog6Tooth, heroHome, heroTag, heroTruck, heroUserGroup, heroUsers, heroXMark })],
+  providers: [provideIcons({ heroArrowRightOnRectangle, heroArchiveBox, heroBars3, heroCog6Tooth, heroDocumentText, heroHome, heroShoppingCart, heroTag, heroTruck, heroUserGroup, heroUsers, heroXMark })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell.html',
 })
@@ -38,9 +40,11 @@ export class Shell {
   protected readonly auth = inject(AuthService);
   protected readonly menuOpen = signal(false);
 
-  // las siguientes fases agregan aqui el punto de venta y los reportes
+  // las siguientes fases agregan aqui compras y gastos y reportes
   private readonly items: NavItem[] = [
     { path: '/app', label: 'Inicio', icon: 'heroHome', exact: true, ownerOnly: false },
+    { path: '/app/vender', label: 'Vender', icon: 'heroShoppingCart', exact: false, ownerOnly: false },
+    { path: '/app/ventas', label: 'Ventas', icon: 'heroDocumentText', exact: false, ownerOnly: false },
     { path: '/app/productos', label: 'Productos', icon: 'heroArchiveBox', exact: false, ownerOnly: false },
     { path: '/app/clientes', label: 'Clientes', icon: 'heroUserGroup', exact: false, ownerOnly: false },
     { path: '/app/proveedores', label: 'Proveedores', icon: 'heroTruck', exact: false, ownerOnly: true },

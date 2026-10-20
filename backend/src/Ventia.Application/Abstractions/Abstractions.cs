@@ -14,6 +14,10 @@ public interface IAppDbContext
     DbSet<StockMovement> StockMovements { get; }
     DbSet<Customer> Customers { get; }
     DbSet<Supplier> Suppliers { get; }
+    DbSet<CashSession> CashSessions { get; }
+    DbSet<Sale> Sales { get; }
+    DbSet<SaleLine> SaleLines { get; }
+    DbSet<SalePayment> SalePayments { get; }
 
     /// <summary>transacciones y actualizaciones atomicas (como descontar stock sin carreras)</summary>
     DatabaseFacade Database { get; }

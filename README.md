@@ -19,7 +19,7 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
 | 1 | Base: registro de negocios, login, roles dueño y cajero, cuentas de cajeros, configuración del negocio, categorías, superadmin, Docker y CI | Hecha |
 | 2 | Catálogo e inventario: productos, movimientos de stock, stock que nunca queda negativo | Hecha |
 | 3 | Clientes y proveedores (NIT con dígito de verificación) | Hecha |
-| 4 | Punto de venta: carrito, descuentos, pago mixto, consecutivo, anulación, caja, tipo de pedido, notas y adiciones | Pendiente |
+| 4 | Punto de venta: carrito, descuentos, pago mixto, consecutivo, anulación, caja, tipo de pedido, notas y adiciones | Hecha |
 | 5 | Compras, cotizaciones, órdenes y remisiones (costo promedio) | Pendiente |
 | 6 | Gastos y pagos a proveedores | Pendiente |
 | 7 | Reportes y exportación a CSV | Pendiente |
@@ -75,6 +75,18 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
   - El cliente puede pedir que se borren sus datos (derecho de supresión): el dueño lo elimina.
   - Los cajeros registran y editan clientes desde la caja. Solo el dueño los borra y gestiona los proveedores.
   - Búsqueda por nombre, documento o celular.
+- **Punto de venta (fase 4):**
+  - **Turnos de caja:** cada cuenta abre su caja con una base y la cierra contando el efectivo. El sistema calcula lo esperado (base más efectivo de las ventas no anuladas) y la diferencia. Una cuenta no puede tener dos cajas abiertas, ni siquiera con dos aperturas simultáneas (índice único parcial).
+  - **Pantalla de caja:** productos por categoría, buscador que acepta código de barras con Enter, tipo de pedido (mesa, para llevar o domicilio), cliente o consumidor final, notas por línea ("sin cebolla"), descuento por línea y adiciones colgadas de un producto.
+  - **Cobro:** efectivo, tarjeta, transferencia o mixto, con el cambio calculado. Solo se registra cómo se pagó; no se procesan pagos reales.
+  - **El servidor manda:** el navegador solo envía qué productos y cuántos. Precios, impuestos, descuentos y totales los calcula el servidor (una prueba manda un precio falso y se ignora).
+  - **Todo o nada:** la venta, sus pagos y el descuento de inventario van en una sola transacción. Si un producto no alcanza, no queda nada.
+  - **Consecutivo sin saltos ni repetidos:** el número se toma dentro de la transacción, bloqueando la fila del negocio. Una prueba lanza 10 ventas a la vez y reciben del 1 al 10. Una venta fallida no consume número.
+  - **Un cobro, una venta:** cada cobro lleva una clave de idempotencia. Un doble clic o cinco reintentos simultáneos con la misma clave devuelven la misma venta, y el stock se descuenta una sola vez.
+  - **Comprobante imprimible** con la leyenda "sin validez fiscal" y los impuestos agrupados (INC o IVA).
+  - **Anulación** solo del dueño, con motivo. Devuelve exactamente lo que la venta descontó del inventario y deja de contar en la caja.
+  - El cajero solo ve sus ventas y el dueño las de todo el negocio.
+  - Un cliente con ventas que pide borrar sus datos se **anonimiza** (también en los comprobantes) en vez de borrarse, para no perder el historial.
 - **Seguridad:**
   - Denegar por defecto, con una prueba que recorre todos los endpoints con cada rol.
   - Bloqueo tras 5 intentos fallidos y límite de peticiones en login y registro.

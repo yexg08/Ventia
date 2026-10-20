@@ -1,4 +1,5 @@
 using Ventia.Application.Abstractions;
+using Ventia.Domain.Common;
 using Ventia.Application.Common;
 using Ventia.Domain.Entities;
 using FluentValidation;
@@ -53,7 +54,7 @@ public class CustomersService(IAppDbContext db, TimeProvider timeProvider) : ICu
 
     public async Task<IReadOnlyList<CustomerDto>> ListAsync(string? search, CancellationToken ct)
     {
-        var customers = db.Customers.AsNoTracking();
+        var customers = db.Customers.AsNoTracking().Where(c => !c.IsAnonymized);
         if (!string.IsNullOrWhiteSpace(search))
         {
             var term = search.Trim().ToLower();
@@ -90,12 +91,34 @@ public class CustomersService(IAppDbContext db, TimeProvider timeProvider) : ICu
         return ToDto(customer);
     }
 
-    // en la fase 4 un cliente con ventas se anonimizara en vez de borrarse (para no perder el historial)
+    // un cliente con ventas se anonimiza (se borran sus datos personales pero las ventas se conservan)
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
-        db.Customers.Remove(await FindAsync(id, ct));
+        var customer = await FindAsync(id, ct);
+        if (!await db.Sales.AnyAsync(s => s.CustomerId == id, ct))
+        {
+            db.Customers.Remove(customer);
+            await db.SaveChangesAsync(ct);
+            return;
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        customer.Name = AnonymizedName;
+        customer.DocumentNumber = $"X{id:N}"[..20];
+        customer.Phone = null;
+        customer.Email = null;
+        customer.Address = null;
+        customer.Notes = null;
+        customer.DataConsentAt = null;
+        customer.IsAnonymized = true;
         await db.SaveChangesAsync(ct);
+        // los comprobantes guardaban una copia del nombre y el documento
+        await db.Sales.Where(s => s.CustomerId == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(x => x.CustomerName, AnonymizedName).SetProperty(x => x.CustomerDocument, (string?)null), ct);
+        await transaction.CommitAsync(ct);
     }
+
+    public const string AnonymizedName = "Cliente eliminado";
 
     private async Task ApplyAsync(Customer customer, CustomerUpsertRequest request, CancellationToken ct)
     {
@@ -110,7 +133,7 @@ public class CustomersService(IAppDbContext db, TimeProvider timeProvider) : ICu
             throw new FieldValidationException(nameof(request.DataConsent),
                 "Confirma que el cliente autorizó el tratamiento de sus datos personales.");
         if (request.DataConsent && customer.DataConsentAt is null)
-            customer.DataConsentAt = timeProvider.GetUtcNow().UtcDateTime;
+            customer.DataConsentAt = timeProvider.GetUtcNow().UtcDateTime.ToMicroseconds();
 
         customer.DocumentType = request.DocumentType;
         customer.DocumentNumber = number;
@@ -122,7 +145,7 @@ public class CustomersService(IAppDbContext db, TimeProvider timeProvider) : ICu
     }
 
     private async Task<Customer> FindAsync(Guid id, CancellationToken ct) =>
-        await db.Customers.FirstOrDefaultAsync(c => c.Id == id, ct) ?? throw new NotFoundException("El cliente");
+        await db.Customers.FirstOrDefaultAsync(c => c.Id == id && !c.IsAnonymized, ct) ?? throw new NotFoundException("El cliente");
 
     private static CustomerDto ToDto(Customer c) =>
         new(c.Id, c.DocumentType, c.DocumentNumber, c.Name, c.Phone, c.Email, c.Address, c.Notes, c.DataConsentAt, c.CreatedAt);

@@ -52,7 +52,11 @@ public enum StockMovementType
     /// <summary>salida manual (merma o dano o consumo interno)</summary>
     Out,
     /// <summary>ajuste por conteo fisico (la diferencia entre lo contado y lo que habia)</summary>
-    Count
+    Count,
+    /// <summary>salida por una venta</summary>
+    Sale,
+    /// <summary>entrada porque se anulo una venta</summary>
+    SaleVoid
 }
 
 /// <summary>
@@ -73,6 +77,9 @@ public class StockMovement : Entity, ITenantOwned
     public int StockAfter { get; set; }
 
     public string? Reason { get; set; }
+
+    /// <summary>venta que causo el movimiento (en ventas y anulaciones)</summary>
+    public Guid? SaleId { get; set; }
 
     public Guid? UserId { get; set; }
 

@@ -12,5 +12,11 @@ public class FieldValidationException(string field, string message) : Exception(
     public string Field { get; } = field;
 }
 
+/// <summary>
+/// llego otra vez una operacion con una clave de idempotencia ya usada (por ejemplo el mismo cobro dos veces)
+/// quien la lanza devuelve el resultado de la primera
+/// </summary>
+public class DuplicateRequestException() : Exception("La operación ya se había registrado.");
+
 /// <summary>credenciales o sesion invalidas y responde 401</summary>
 public class AuthenticationFailedException(string message) : Exception(message);

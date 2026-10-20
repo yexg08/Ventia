@@ -30,3 +30,13 @@ public class TaxesTests
         }
     }
 }
+
+public class MoneyTests
+{
+    [Theory]
+    [InlineData(18000, "18.000")]
+    [InlineData(1234567.5, "1.234.567,50")]
+    [InlineData(0, "0")]
+    public void Formats_like_colombian_pesos_regardless_of_the_server_culture(decimal amount, string expected) =>
+        Assert.Equal(expected, Ventia.Application.Common.Money.Format(amount));
+}

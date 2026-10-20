@@ -118,6 +118,91 @@ public class SupplierConfiguration : IEntityTypeConfiguration<Supplier>
     }
 }
 
+public class CashSessionConfiguration : IEntityTypeConfiguration<CashSession>
+{
+    public const string OneOpenPerUserIndex = "ux_cash_sessions_one_open_per_user";
+
+    public void Configure(EntityTypeBuilder<CashSession> b)
+    {
+        b.ToTable("cash_sessions");
+        b.Property(s => s.UserName).HasMaxLength(80).IsRequired();
+        b.Property(s => s.OpeningCash).HasPrecision(14, 2);
+        b.Property(s => s.ExpectedCash).HasPrecision(14, 2);
+        b.Property(s => s.CountedCash).HasPrecision(14, 2);
+        b.Property(s => s.CloseNotes).HasMaxLength(300);
+        // una cuenta tiene como maximo un turno abierto (aunque dos aperturas lleguen al mismo tiempo)
+        b.HasIndex(s => new { s.TenantId, s.UserId }).IsUnique().HasFilter("\"ClosedAt\" IS NULL").HasDatabaseName(OneOpenPerUserIndex);
+        b.HasIndex(s => new { s.TenantId, s.CreatedAt });
+        b.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SaleConfiguration : IEntityTypeConfiguration<Sale>
+{
+    public const string UniqueNumberIndex = "ux_sales_tenant_number";
+    public const string UniqueIdempotencyIndex = "ux_sales_tenant_idempotency";
+
+    public void Configure(EntityTypeBuilder<Sale> b)
+    {
+        b.ToTable("sales", t => t.HasCheckConstraint("ck_sales_total_non_negative", "\"Total\" >= 0"));
+        b.Property(s => s.SellerName).HasMaxLength(80).IsRequired();
+        b.Property(s => s.OrderType).HasConversion<string>().HasMaxLength(10);
+        b.Property(s => s.Status).HasConversion<string>().HasMaxLength(10);
+        b.Property(s => s.TableLabel).HasMaxLength(20);
+        b.Property(s => s.DeliveryAddress).HasMaxLength(150);
+        b.Property(s => s.CustomerName).HasMaxLength(100).IsRequired();
+        b.Property(s => s.CustomerDocument).HasMaxLength(30);
+        b.Property(s => s.VoidedBy).HasMaxLength(80);
+        b.Property(s => s.VoidReason).HasMaxLength(200);
+        b.Property(s => s.Notes).HasMaxLength(300);
+        foreach (var money in new[] { nameof(Sale.Subtotal), nameof(Sale.TaxTotal), nameof(Sale.DiscountTotal), nameof(Sale.Total), nameof(Sale.CashTendered), nameof(Sale.Change) })
+            b.Property<decimal>(money).HasPrecision(14, 2);
+        // consecutivo sin repetidos y una sola venta por clave de cobro
+        b.HasIndex(s => new { s.TenantId, s.Number }).IsUnique().HasDatabaseName(UniqueNumberIndex);
+        b.HasIndex(s => new { s.TenantId, s.IdempotencyKey }).IsUnique().HasDatabaseName(UniqueIdempotencyIndex);
+        b.HasIndex(s => new { s.TenantId, s.CreatedAt });
+        b.HasIndex(s => s.CashSessionId);
+        b.HasIndex(s => s.CustomerId);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(s => s.TenantId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<CashSession>().WithMany().HasForeignKey(s => s.CashSessionId).OnDelete(DeleteBehavior.Restrict);
+        // un cliente con ventas no se borra (se anonimiza)
+        b.HasOne<Customer>().WithMany().HasForeignKey(s => s.CustomerId).OnDelete(DeleteBehavior.Restrict);
+        b.HasMany(s => s.Lines).WithOne().HasForeignKey(l => l.SaleId).OnDelete(DeleteBehavior.Restrict);
+        b.HasMany(s => s.Payments).WithOne().HasForeignKey(p => p.SaleId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SaleLineConfiguration : IEntityTypeConfiguration<SaleLine>
+{
+    public void Configure(EntityTypeBuilder<SaleLine> b)
+    {
+        b.ToTable("sale_lines", t => t.HasCheckConstraint("ck_sale_lines_quantity_positive", "\"Quantity\" > 0"));
+        b.Property(l => l.ProductName).HasMaxLength(80).IsRequired();
+        b.Property(l => l.Note).HasMaxLength(120);
+        b.Property(l => l.Tax).HasConversion<string>().HasMaxLength(10);
+        foreach (var money in new[] { nameof(SaleLine.UnitPrice), nameof(SaleLine.DiscountAmount), nameof(SaleLine.LineTotal), nameof(SaleLine.LineBase), nameof(SaleLine.LineTax) })
+            b.Property<decimal>(money).HasPrecision(14, 2);
+        b.Property(l => l.DiscountPercent).HasPrecision(5, 2);
+        b.HasIndex(l => l.ProductId);
+        b.HasIndex(l => l.TenantId);
+        b.HasOne<Product>().WithMany().HasForeignKey(l => l.ProductId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<SaleLine>().WithMany().HasForeignKey(l => l.ParentLineId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(l => l.TenantId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
+public class SalePaymentConfiguration : IEntityTypeConfiguration<SalePayment>
+{
+    public void Configure(EntityTypeBuilder<SalePayment> b)
+    {
+        b.ToTable("sale_payments", t => t.HasCheckConstraint("ck_sale_payments_amount_positive", "\"Amount\" > 0"));
+        b.Property(p => p.Method).HasConversion<string>().HasMaxLength(10);
+        b.Property(p => p.Amount).HasPrecision(14, 2);
+        b.HasIndex(p => p.TenantId);
+        b.HasOne<Tenant>().WithMany().HasForeignKey(p => p.TenantId).OnDelete(DeleteBehavior.Restrict);
+    }
+}
+
 public class RefreshTokenConfiguration : IEntityTypeConfiguration<RefreshToken>
 {
     public void Configure(EntityTypeBuilder<RefreshToken> b)

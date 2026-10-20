@@ -160,3 +160,126 @@ export interface Supplier {
 }
 
 export type SupplierUpsert = Omit<Supplier, 'id'>;
+
+export type OrderType = 'DineIn' | 'TakeAway' | 'Delivery';
+export type SaleStatus = 'Completed' | 'Voided';
+export type PaymentMethod = 'Cash' | 'Card' | 'Transfer';
+
+export const ORDER_TYPES: { value: OrderType; label: string }[] = [
+  { value: 'TakeAway', label: 'Para llevar' },
+  { value: 'DineIn', label: 'Mesa' },
+  { value: 'Delivery', label: 'Domicilio' },
+];
+
+export const PAYMENT_METHODS: { value: PaymentMethod; label: string }[] = [
+  { value: 'Cash', label: 'Efectivo' },
+  { value: 'Card', label: 'Tarjeta' },
+  { value: 'Transfer', label: 'Transferencia' },
+];
+
+export interface PaymentSummary {
+  method: PaymentMethod;
+  amount: number;
+}
+
+export interface CashSession {
+  id: string;
+  userName: string;
+  openedAt: string;
+  openingCash: number;
+  closedAt: string | null;
+  salesCount: number;
+  voidedCount: number;
+  salesTotal: number;
+  byMethod: PaymentSummary[];
+  /** base mas efectivo de las ventas no anuladas */
+  expectedCash: number;
+  countedCash: number | null;
+  difference: number | null;
+  closeNotes: string | null;
+}
+
+export interface SaleLineRequest {
+  productId: string;
+  quantity: number;
+  discountPercent: number;
+  note: string | null;
+  parentIndex: number | null;
+}
+
+export interface CreateSaleRequest {
+  idempotencyKey: string;
+  orderType: OrderType;
+  tableLabel: string | null;
+  deliveryAddress: string | null;
+  customerId: string | null;
+  lines: SaleLineRequest[];
+  payments: PaymentSummary[];
+  cashTendered: number;
+  notes: string | null;
+}
+
+export interface SaleLine {
+  id: string;
+  position: number;
+  productId: string;
+  productName: string;
+  parentLineId: string | null;
+  quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  discountAmount: number;
+  tax: TaxType;
+  lineTotal: number;
+  lineBase: number;
+  lineTax: number;
+  note: string | null;
+}
+
+export interface ReceiptBusiness {
+  name: string;
+  taxId: string | null;
+  address: string | null;
+  city: string | null;
+  phone: string | null;
+  footer: string | null;
+}
+
+export interface Sale {
+  id: string;
+  number: number;
+  createdAt: string;
+  sellerName: string;
+  orderType: OrderType;
+  tableLabel: string | null;
+  deliveryAddress: string | null;
+  customerId: string | null;
+  customerName: string;
+  customerDocument: string | null;
+  subtotal: number;
+  taxTotal: number;
+  discountTotal: number;
+  total: number;
+  cashTendered: number;
+  change: number;
+  status: SaleStatus;
+  voidedAt: string | null;
+  voidedBy: string | null;
+  voidReason: string | null;
+  notes: string | null;
+  lines: SaleLine[];
+  payments: PaymentSummary[];
+  business: ReceiptBusiness;
+}
+
+export interface SaleSummary {
+  id: string;
+  number: number;
+  createdAt: string;
+  sellerName: string;
+  orderType: OrderType;
+  customerName: string;
+  total: number;
+  status: SaleStatus;
+  itemCount: number;
+}

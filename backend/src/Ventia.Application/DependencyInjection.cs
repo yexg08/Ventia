@@ -2,6 +2,7 @@ using Ventia.Application.Business;
 using Ventia.Application.Catalog;
 using Ventia.Application.Inventory;
 using Ventia.Application.Parties;
+using Ventia.Application.Sales;
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -18,6 +19,8 @@ public static class DependencyInjection
         services.AddScoped<IProductsService, ProductsService>();
         services.AddScoped<ICustomersService, CustomersService>();
         services.AddScoped<ISuppliersService, SuppliersService>();
+        services.AddScoped<ICashSessionsService, CashSessionsService>();
+        services.AddScoped<ISalesService, SalesService>();
         return services;
     }
 }

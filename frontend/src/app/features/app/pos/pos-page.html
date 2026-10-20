@@ -1,0 +1,191 @@
+@if (session.isLoading() && !session.hasValue()) {
+  <div class="card mx-auto mt-10 h-48 max-w-md animate-pulse bg-surface-2" aria-label="Cargando caja"></div>
+} @else if (session.error()) {
+  <div class="card mx-auto mt-10 max-w-md p-8 text-center">
+    <p class="font-semibold">No se pudo consultar tu caja.</p>
+    <button type="button" class="btn-secondary mt-4" (click)="session.reload()">Reintentar</button>
+  </div>
+} @else if (!session.value()) {
+  <!-- sin caja abierta -->
+  <form class="card mx-auto mt-10 max-w-md p-8 text-center" (ngSubmit)="openCash()">
+    <ng-icon name="heroBanknotes" size="36" class="text-accent" />
+    <h1 class="mt-3 text-xl font-extrabold">Abre tu caja para empezar a vender</h1>
+    <p class="mt-1 text-sm text-muted">Cuenta el efectivo con el que empiezas el turno (la base).</p>
+    <label for="opening-cash" class="field-label mt-6 text-left">Base en efectivo</label>
+    <input id="opening-cash" type="number" inputmode="decimal" min="0" step="1000" class="field-input tabular-nums" [(ngModel)]="openingCash" name="openingCash" />
+    <button type="submit" class="btn-primary mt-5 w-full py-3" [disabled]="opening()">{{ opening() ? 'Abriendo…' : 'Abrir caja' }}</button>
+  </form>
+} @else {
+  @let current = session.value()!;
+  <div class="lg:grid lg:grid-cols-[1fr_24rem] lg:gap-6">
+    <!-- catalogo -->
+    <section aria-label="Productos" class="min-w-0">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <h1 class="text-2xl font-extrabold tracking-tight">Vender</h1>
+        <p class="flex items-center gap-2 text-sm text-muted">
+          Caja de {{ current.userName }} · {{ current.salesCount }} venta(s) · {{ money(current.salesTotal) }}
+          <button type="button" class="btn-ghost px-2.5 py-1.5" (click)="closeCash(current)">
+            <ng-icon name="heroLockClosed" size="16" /> Cerrar caja
+          </button>
+        </p>
+      </div>
+
+      <div class="relative mt-4">
+        <ng-icon name="heroMagnifyingGlass" size="18" class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-faint" />
+        <label for="pos-search" class="sr-only">Buscar producto o escanear código de barras</label>
+        <input
+          id="pos-search"
+          type="search"
+          autocomplete="off"
+          class="field-input pl-10"
+          placeholder="Buscar o escanear código (Enter agrega)"
+          [ngModel]="search()"
+          (ngModelChange)="search.set($event)"
+          (keydown.enter)="addByCode()"
+        />
+      </div>
+
+      @if (!search()) {
+        <div class="mt-3 flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Categorías">
+          <button type="button" role="tab" class="btn-secondary shrink-0 rounded-full px-4 py-1.5" [attr.aria-selected]="categoryId() === null" [class.!bg-ink]="categoryId() === null" [class.!text-bg]="categoryId() === null" (click)="categoryId.set(null)">Todo</button>
+          @for (c of activeCategories(); track c.id) {
+            <button type="button" role="tab" class="btn-secondary shrink-0 rounded-full px-4 py-1.5" [attr.aria-selected]="categoryId() === c.id" [class.!bg-ink]="categoryId() === c.id" [class.!text-bg]="categoryId() === c.id" (click)="categoryId.set(c.id)">{{ c.name }}</button>
+          }
+        </div>
+      }
+
+      @if (products.isLoading() && products.value().length === 0) {
+        <div class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          @for (i of [1, 2, 3, 4, 5, 6]; track i) {
+            <div class="card h-24 animate-pulse bg-surface-2"></div>
+          }
+        </div>
+      } @else if (visibleProducts().length === 0) {
+        <div class="card mt-4 border-dashed p-10 text-center text-sm text-muted">
+          @if (search()) {
+            Ningún producto coincide con "{{ search() }}".
+          } @else {
+            Aún no hay productos activos para vender.
+            @if (auth.isOwner()) { <a routerLink="/app/productos" class="font-semibold text-accent hover:underline">Crear productos</a> }
+          }
+        </div>
+      } @else {
+        <ul class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          @for (p of visibleProducts(); track p.id) {
+            @let left = available(p);
+            <li>
+              <button
+                type="button"
+                class="card flex h-full w-full flex-col items-start p-3.5 text-left transition hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="left !== null && left <= 0"
+                (click)="add(p)"
+              >
+                <span class="line-clamp-2 text-sm font-semibold">{{ p.name }}</span>
+                <span class="mt-auto pt-2 text-sm font-bold tabular-nums">{{ money(p.price) }}</span>
+                @if (left !== null) {
+                  <span class="text-xs" [class]="left <= 0 ? 'text-danger' : left <= p.minStock ? 'text-accent' : 'text-faint'">
+                    {{ left <= 0 ? 'Agotado' : 'Quedan ' + left }}
+                  </span>
+                }
+                @if (inCart(p.id) > 0) {
+                  <span class="sr-only">({{ inCart(p.id) }} en el pedido)</span>
+                }
+              </button>
+            </li>
+          }
+        </ul>
+      }
+    </section>
+
+    <!-- pedido -->
+    <section aria-labelledby="order-title" class="card mt-6 flex flex-col lg:sticky lg:top-6 lg:mt-0 lg:max-h-[calc(100dvh-5rem)]">
+      <div class="space-y-3 border-b border-line p-4">
+        <div class="flex items-center justify-between">
+          <h2 id="order-title" class="font-bold">Pedido @if (itemCount()) { <span class="font-normal text-muted">· {{ itemCount() }}</span> }</h2>
+          @if (cart().length) {
+            <button type="button" class="btn-ghost px-2 py-1 text-xs" (click)="clear()">Vaciar</button>
+          }
+        </div>
+        <div class="grid grid-cols-3 gap-1 rounded-xl bg-surface-2 p-1" role="radiogroup" aria-label="Tipo de pedido">
+          @for (t of orderTypes; track t.value) {
+            <button type="button" role="radio" class="rounded-lg px-2 py-1.5 text-xs font-semibold transition" [attr.aria-checked]="orderType() === t.value" [class]="orderType() === t.value ? 'bg-surface text-ink shadow-sm' : 'text-muted hover:text-ink'" (click)="orderType.set(t.value)">{{ t.label }}</button>
+          }
+        </div>
+        @if (orderType() === 'DineIn') {
+          <label class="sr-only" for="table-label">Mesa</label>
+          <input id="table-label" class="field-input py-2" placeholder="Mesa (opcional)" maxlength="20" [(ngModel)]="tableLabel" name="tableLabel" />
+        }
+        @if (orderType() === 'Delivery') {
+          <label class="sr-only" for="delivery-address">Dirección del domicilio</label>
+          <input id="delivery-address" class="field-input py-2" placeholder="Dirección del domicilio" maxlength="150" [(ngModel)]="deliveryAddress" name="deliveryAddress" />
+        }
+        <div class="flex items-center gap-2 text-sm">
+          <ng-icon name="heroUser" size="17" class="shrink-0 text-faint" />
+          <span class="min-w-0 flex-1 truncate">{{ customer()?.name ?? 'Consumidor final' }}</span>
+          @if (customer()) {
+            <button type="button" class="btn-ghost px-1.5 py-1" (click)="customer.set(null)" aria-label="Quitar cliente"><ng-icon name="heroXMark" size="16" /></button>
+          }
+          <button type="button" class="btn-ghost px-2 py-1 text-xs" (click)="pickCustomer()">{{ customer() ? 'Cambiar' : 'Elegir cliente' }}</button>
+        </div>
+      </div>
+
+      <ul class="min-h-24 flex-1 divide-y divide-line overflow-y-auto">
+        @for (line of orderedLines(); track line.key) {
+          @let a = amounts(line);
+          <li class="px-4 py-3" [class.pl-9]="line.parentKey" [class.bg-surface-2]="line.parentKey">
+            <div class="flex items-start gap-2">
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold">{{ line.parentKey ? '+ ' : '' }}{{ line.product.name }}</p>
+                <p class="text-xs text-muted tabular-nums">
+                  {{ money(line.unitPrice) }}
+                  @if (line.discountPercent > 0) { · −{{ line.discountPercent }} % }
+                  @if (line.note) { · <span class="italic">{{ line.note }}</span> }
+                </p>
+              </div>
+              <p class="text-sm font-bold tabular-nums">{{ money(a.total) }}</p>
+            </div>
+            <div class="mt-2 flex items-center gap-1">
+              <button type="button" class="btn-secondary size-8 p-0" (click)="changeQuantity(line, -1)" [attr.aria-label]="'Quitar uno de ' + line.product.name"><ng-icon name="heroMinus" size="15" /></button>
+              <span class="w-8 text-center text-sm font-semibold tabular-nums" aria-live="polite">{{ line.quantity }}</span>
+              <button type="button" class="btn-secondary size-8 p-0" (click)="changeQuantity(line, 1)" [attr.aria-label]="'Agregar uno de ' + line.product.name"><ng-icon name="heroPlus" size="15" /></button>
+              <span class="flex-1"></span>
+              @if (!line.parentKey) {
+                <button type="button" class="btn-ghost px-2 py-1" (click)="pickAddOn(line)" title="Agregar adición" [attr.aria-label]="'Agregar adición a ' + line.product.name"><ng-icon name="heroPlusCircle" size="17" /></button>
+              }
+              <button type="button" class="btn-ghost px-2 py-1" (click)="editingKey.set(editingKey() === line.key ? null : line.key)" title="Nota y descuento" [attr.aria-expanded]="editingKey() === line.key" [attr.aria-label]="'Nota y descuento de ' + line.product.name"><ng-icon name="heroChatBubbleBottomCenterText" size="17" /></button>
+              <button type="button" class="btn-ghost px-2 py-1 hover:text-danger" (click)="remove(line)" [attr.aria-label]="'Quitar ' + line.product.name"><ng-icon name="heroTrash" size="17" /></button>
+            </div>
+            @if (editingKey() === line.key) {
+              <div class="mt-2 grid grid-cols-[1fr_6rem] gap-2">
+                <label class="sr-only" [for]="'note-' + line.key">Nota para la cocina</label>
+                <input [id]="'note-' + line.key" class="field-input py-1.5 text-xs" placeholder="Nota (sin cebolla…)" maxlength="120" [ngModel]="line.note" (ngModelChange)="update(line, { note: $event })" />
+                <label class="sr-only" [for]="'discount-' + line.key">Descuento en porcentaje</label>
+                <div class="relative">
+                  <input [id]="'discount-' + line.key" type="number" min="0" max="100" class="field-input py-1.5 pr-6 text-xs tabular-nums" [ngModel]="line.discountPercent" (ngModelChange)="update(line, { discountPercent: $event })" />
+                  <span class="pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-xs text-faint">%</span>
+                </div>
+              </div>
+            }
+          </li>
+        } @empty {
+          <li class="px-4 py-10 text-center text-sm text-muted">Toca un producto para agregarlo.</li>
+        }
+      </ul>
+
+      <div class="space-y-1 border-t border-line p-4 text-sm">
+        <div class="flex justify-between text-muted"><span>Subtotal</span><span class="tabular-nums">{{ money(totals().subtotal) }}</span></div>
+        <div class="flex justify-between text-muted"><span>Impuestos</span><span class="tabular-nums">{{ money(totals().taxTotal) }}</span></div>
+        @if (totals().discountTotal > 0) {
+          <div class="flex justify-between text-muted"><span>Descuentos</span><span class="tabular-nums">−{{ money(totals().discountTotal) }}</span></div>
+        }
+        <div class="flex justify-between pt-1 text-xl font-extrabold"><span>Total</span><span class="tabular-nums">{{ money(totals().total) }}</span></div>
+        @if (cartError()) {
+          <p class="field-error" role="alert">{{ cartError() }}</p>
+        }
+        <button type="button" class="btn-primary mt-3 w-full py-3 text-base" [disabled]="cart().length === 0" (click)="charge()">
+          <ng-icon name="heroReceiptPercent" size="19" /> Cobrar {{ cart().length ? money(totals().total) : '' }}
+        </button>
+      </div>
+    </section>
+  </div>
+}

@@ -18,3 +18,12 @@ public interface ITenantOwned
 {
     Guid TenantId { get; set; }
 }
+
+public static class Clock
+{
+    /// <summary>
+    /// recorta a microsegundos que es la precision de PostgreSQL (asi una fecha recien guardada es igual a la que se lee
+    /// despues de la base)
+    /// </summary>
+    public static DateTime ToMicroseconds(this DateTime value) => new(value.Ticks - value.Ticks % 10, value.Kind);
+}
