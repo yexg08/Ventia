@@ -1,0 +1,311 @@
+<div class="mx-auto max-w-6xl">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">Reportes</h1>
+      <p class="mt-1 text-muted">Cuánto vendes, cuánto ganas y qué se mueve. Las cifras no incluyen ventas anuladas.</p>
+    </div>
+  </div>
+
+  <!-- rango de fechas -->
+  <div class="mt-8 flex flex-wrap items-end gap-3">
+    <div class="flex flex-wrap gap-2" role="group" aria-label="Periodo">
+      @for (p of presets; track p.value) {
+        <button type="button" class="btn-secondary rounded-full px-4 py-1.5" [class.!bg-ink]="preset() === p.value" [class.!text-bg]="preset() === p.value" [attr.aria-pressed]="preset() === p.value" (click)="setPreset(p.value)">{{ p.label }}</button>
+      }
+    </div>
+    <div class="flex items-end gap-3">
+      <div>
+        <label for="report-from" class="field-label">Desde</label>
+        <input id="report-from" type="date" class="field-input" [ngModel]="from()" (ngModelChange)="from.set($event)" [max]="to()" />
+      </div>
+      <div>
+        <label for="report-to" class="field-label">Hasta</label>
+        <input id="report-to" type="date" class="field-input" [ngModel]="to()" (ngModelChange)="to.set($event)" [min]="from()" />
+      </div>
+    </div>
+  </div>
+
+  @if (tooLong()) {
+    <p class="card mt-4 border-danger/40 p-4 text-sm text-danger" role="alert">Elige un periodo de máximo un año.</p>
+  } @else if (report.isLoading() && !report.hasValue()) {
+    <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      @for (i of [1, 2, 3, 4]; track i) { <div class="card h-28 animate-pulse bg-surface-2"></div> }
+    </div>
+    <div class="card mt-4 h-64 animate-pulse bg-surface-2" aria-label="Cargando reportes"></div>
+  } @else if (report.error()) {
+    <div class="card mt-6 p-8 text-center">
+      <p class="font-semibold">No se pudo cargar el reporte.</p>
+      <button type="button" class="btn-secondary mt-4" (click)="report.reload()">Reintentar</button>
+    </div>
+  } @else if (report.value(); as r) {
+    <!-- indicadores -->
+    <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4" [class.opacity-60]="report.isLoading()">
+      <div class="card p-5">
+        <p class="text-sm text-muted">Total vendido</p>
+        <p class="mt-1 text-2xl font-extrabold tabular-nums">{{ money(r.total) }}</p>
+        @if (change() !== null) {
+          @let c = change()!;
+          <p class="mt-1 flex items-center gap-1 text-xs" [class]="c >= 0 ? 'text-success' : 'text-danger'">
+            <ng-icon [name]="c >= 0 ? 'heroArrowTrendingUp' : 'heroArrowTrendingDown'" size="14" />
+            {{ c > 0 ? '+' : '' }}{{ c }} % frente al periodo anterior
+          </p>
+        } @else {
+          <p class="mt-1 text-xs text-faint">Sin ventas en el periodo anterior</p>
+        }
+      </div>
+      <div class="card p-5">
+        <p class="text-sm text-muted">Ventas</p>
+        <p class="mt-1 text-2xl font-extrabold tabular-nums">{{ r.salesCount }}</p>
+        <p class="mt-1 text-xs text-faint">{{ r.voidedCount ? r.voidedCount + ' anulada(s) aparte' : 'Ninguna anulada' }}</p>
+      </div>
+      <div class="card p-5">
+        <p class="text-sm text-muted">Ticket promedio</p>
+        <p class="mt-1 text-2xl font-extrabold tabular-nums">{{ money(r.averageTicket) }}</p>
+        <p class="mt-1 text-xs text-faint">Descuentos dados: {{ money(r.discountTotal) }}</p>
+      </div>
+      <div class="card p-5">
+        <p class="text-sm text-muted">Utilidad neta</p>
+        <p class="mt-1 text-2xl font-extrabold tabular-nums" [class.text-danger]="r.profit.netProfit < 0">{{ money(r.profit.netProfit) }}</p>
+        <p class="mt-1 text-xs text-faint">Margen bruto {{ grossMargin() }} %</p>
+      </div>
+    </div>
+
+    @if (r.salesCount === 0) {
+      <div class="card mt-4 border-dashed p-10 text-center">
+        <ng-icon name="heroChartBar" size="32" class="text-faint" />
+        <p class="mt-3 font-semibold">No hay ventas en este periodo.</p>
+        <p class="mt-1 text-sm text-muted">Prueba con otras fechas o haz tu primera venta en <a routerLink="/app/vender" class="font-semibold text-accent hover:underline">Vender</a>.</p>
+      </div>
+    } @else {
+      <!-- ventas por dia -->
+      <section class="card mt-4 p-5" aria-labelledby="by-day-title">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="by-day-title" class="font-bold">Ventas por día</h2>
+          @if (bestDay(); as best) {
+            <p class="text-xs text-muted">Mejor día: {{ dayLabel(best.date) }} con {{ money(best.total) }}</p>
+          }
+        </div>
+        <div class="mt-4 flex h-44 items-end gap-px border-b border-line sm:gap-1" role="img" [attr.aria-label]="'Ventas por día del ' + date(r.from) + ' al ' + date(r.to)">
+          @for (d of r.byDay; track d.date) {
+            <div class="group relative flex h-full flex-1 items-end">
+              <div class="w-full rounded-t bg-accent/80 transition group-hover:bg-accent" [style.height]="barHeight(d.total, maxDay())"></div>
+              <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-lg bg-ink px-2 py-1 text-xs whitespace-nowrap text-bg group-hover:block">
+                {{ dayLabel(d.date) }} · {{ money(d.total) }} · {{ d.count }} venta(s)
+              </span>
+            </div>
+          }
+        </div>
+        <div class="mt-1.5 flex justify-between text-xs text-faint" aria-hidden="true">
+          @for (t of dayTicks(); track t) { <span>{{ dayLabel(t) }}</span> }
+        </div>
+      </section>
+
+      <div class="mt-4 grid gap-4 lg:grid-cols-2">
+        <!-- utilidad -->
+        <section class="card p-5" aria-labelledby="profit-title">
+          <h2 id="profit-title" class="font-bold">¿Cuánto ganaste?</h2>
+          <dl class="mt-3 space-y-1.5 text-sm">
+            <div class="flex justify-between"><dt class="text-muted">Ventas sin impuestos</dt><dd class="tabular-nums">{{ money(r.profit.netSales) }}</dd></div>
+            <div class="flex justify-between"><dt class="text-muted">− Costo de lo vendido</dt><dd class="tabular-nums">{{ money(r.profit.costOfSales) }}</dd></div>
+            <div class="flex justify-between border-t border-line pt-1.5 font-semibold"><dt>Utilidad bruta</dt><dd class="tabular-nums">{{ money(r.profit.grossProfit) }}</dd></div>
+            <div class="flex justify-between"><dt class="text-muted">− Gastos</dt><dd class="tabular-nums">{{ money(r.profit.expenses) }}</dd></div>
+            <div class="flex justify-between border-t border-line pt-1.5 text-base font-extrabold" [class.text-danger]="r.profit.netProfit < 0"><dt>Utilidad neta</dt><dd class="tabular-nums">{{ money(r.profit.netProfit) }}</dd></div>
+          </dl>
+          @if (r.profit.linesWithoutCost > 0) {
+            <p class="mt-3 flex gap-2 rounded-xl bg-accent/10 px-3 py-2 text-xs text-accent">
+              <ng-icon name="heroExclamationTriangle" size="16" class="shrink-0" />
+              {{ r.profit.linesWithoutCost }} línea(s) vendida(s) de productos sin costo. La utilidad real es menor: ponles costo en <a routerLink="/app/productos" class="font-semibold underline">Productos</a>.
+            </p>
+          }
+          <p class="mt-3 text-xs text-faint">
+            Las compras de mercancía del periodo ({{ money(r.purchases) }}) no se restan aquí: entran al inventario y cuentan como costo cuando se venden.
+          </p>
+        </section>
+
+        <!-- productos -->
+        <section class="card overflow-hidden" aria-labelledby="top-title">
+          <h2 id="top-title" class="px-5 pt-5 font-bold">Lo más vendido</h2>
+          <div class="mt-2 overflow-x-auto">
+            <table class="w-full min-w-[26rem] text-sm">
+              <thead class="text-xs text-muted">
+                <tr class="border-b border-line">
+                  <th scope="col" class="px-5 py-2 text-left font-semibold">Producto</th>
+                  <th scope="col" class="px-3 py-2 text-right font-semibold">Cant.</th>
+                  <th scope="col" class="px-3 py-2 text-right font-semibold">Vendido</th>
+                  <th scope="col" class="px-5 py-2 text-right font-semibold">Utilidad</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-line">
+                @for (p of r.topProducts; track p.productId) {
+                  <tr>
+                    <td class="px-5 py-2">{{ p.name }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ p.quantity }}</td>
+                    <td class="px-3 py-2 text-right tabular-nums">{{ money(p.total) }}</td>
+                    <td class="px-5 py-2 text-right whitespace-nowrap tabular-nums">
+                      @if (p.profit !== null) {
+                        {{ money(p.profit) }} <span class="text-xs text-faint">{{ share(p.profit, p.netSales) }} %</span>
+                      } @else {
+                        <span class="text-xs text-faint">sin costo</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- horas -->
+        <section class="card p-5" aria-labelledby="hours-title">
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="hours-title" class="font-bold">Horas de más venta</h2>
+            @if (peakHour(); as peak) { <p class="text-xs text-muted">Pico: {{ hourLabel(peak.hour) }}</p> }
+          </div>
+          <div class="mt-4 flex h-28 items-end gap-0.5 border-b border-line" role="img" [attr.aria-label]="peakHour() ? 'La hora de más venta es ' + hourLabel(peakHour()!.hour) : 'Ventas por hora'">
+            @for (h of r.byHour; track h.hour) {
+              <div class="group relative flex h-full flex-1 items-end">
+                <div class="w-full rounded-t bg-ink/70 transition group-hover:bg-ink" [style.height]="barHeight(h.total, maxHour())"></div>
+                <span class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded-lg bg-ink px-2 py-1 text-xs whitespace-nowrap text-bg group-hover:block">
+                  {{ hourLabel(h.hour) }} · {{ money(h.total) }}
+                </span>
+              </div>
+            }
+          </div>
+          <div class="mt-1.5 flex justify-between text-xs text-faint" aria-hidden="true">
+            <span>12 a. m.</span><span>6 a. m.</span><span>12 p. m.</span><span>6 p. m.</span><span>11 p. m.</span>
+          </div>
+        </section>
+
+        <!-- medios de pago y tipo de pedido -->
+        <section class="card p-5" aria-labelledby="methods-title">
+          <h2 id="methods-title" class="font-bold">Cómo te pagan</h2>
+          <ul class="mt-3 space-y-3 text-sm">
+            @for (m of r.byMethod; track m.method) {
+              <li>
+                <div class="flex justify-between"><span>{{ methodLabel(m.method) }}</span><span class="tabular-nums">{{ money(m.amount) }} <span class="text-xs text-faint">{{ share(m.amount, r.total) }} %</span></span></div>
+                <div class="mt-1 h-2 rounded-full bg-surface-2"><div class="h-2 rounded-full bg-accent" [style.width.%]="share(m.amount, r.total)"></div></div>
+              </li>
+            }
+          </ul>
+          <h3 class="mt-5 text-xs font-semibold tracking-wider text-muted uppercase">Tipo de pedido</h3>
+          <ul class="mt-2 space-y-1 text-sm">
+            @for (o of r.byOrderType; track o.orderType) {
+              <li class="flex justify-between"><span>{{ orderTypeLabel(o.orderType) }} <span class="text-xs text-faint">· {{ o.count }}</span></span><span class="tabular-nums">{{ money(o.total) }}</span></li>
+            }
+          </ul>
+        </section>
+
+        <!-- impuestos -->
+        <section class="card p-5" aria-labelledby="taxes-title">
+          <h2 id="taxes-title" class="font-bold">Impuestos cobrados</h2>
+          <p class="mt-1 text-xs text-faint">Lo que cobraste a tus clientes. Revisa con tu contador cómo declararlo.</p>
+          @if (r.taxes.length) {
+            <dl class="mt-3 space-y-1.5 text-sm">
+              @for (t of r.taxes; track t.tax) {
+                <div class="flex justify-between"><dt class="text-muted">{{ taxLabel(t.tax) }} <span class="text-xs">sobre {{ money(t.base) }}</span></dt><dd class="tabular-nums">{{ money(t.amount) }}</dd></div>
+              }
+              <div class="flex justify-between border-t border-line pt-1.5 font-semibold"><dt>Total</dt><dd class="tabular-nums">{{ money(r.taxTotal) }}</dd></div>
+            </dl>
+          } @else {
+            <p class="mt-3 text-sm text-muted">Las ventas del periodo no llevan impuesto.</p>
+          }
+        </section>
+
+        <!-- equipo y caja -->
+        <section class="card p-5" aria-labelledby="team-title">
+          <h2 id="team-title" class="font-bold">Vendedores y caja</h2>
+          <ul class="mt-3 space-y-1 text-sm">
+            @for (s of r.bySeller; track s.sellerName) {
+              <li class="flex justify-between"><span>{{ s.sellerName }} <span class="text-xs text-faint">· {{ s.count }} venta(s)</span></span><span class="tabular-nums">{{ money(s.total) }}</span></li>
+            }
+          </ul>
+          <h3 class="mt-5 text-xs font-semibold tracking-wider text-muted uppercase">Diferencias al cerrar caja</h3>
+          @if (r.cashDifferences.length) {
+            <ul class="mt-2 space-y-1 text-sm">
+              @for (c of r.cashDifferences; track c.userName) {
+                <li class="flex justify-between">
+                  <span>{{ c.userName }} <span class="text-xs text-faint">· {{ c.sessions }} cierre(s)</span></span>
+                  <span class="tabular-nums" [class]="c.difference < 0 ? 'text-danger' : c.difference > 0 ? 'text-success' : ''">{{ c.difference > 0 ? '+' : '' }}{{ money(c.difference) }}</span>
+                </li>
+              }
+            </ul>
+          } @else {
+            <p class="mt-2 text-sm text-muted">No se cerraron cajas en el periodo.</p>
+          }
+        </section>
+      </div>
+    }
+
+    <!-- gastos -->
+    @if (r.expensesByCategory.length) {
+      <section class="card mt-4 p-5" aria-labelledby="expenses-title">
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 id="expenses-title" class="font-bold">Gastos por categoría</h2>
+          <a routerLink="/app/gastos" class="text-xs font-semibold text-accent hover:underline">Ver gastos</a>
+        </div>
+        <ul class="mt-3 grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2">
+          @for (e of r.expensesByCategory; track e.category) {
+            <li>
+              <div class="flex justify-between"><span>{{ categoryLabel(e.category) }}</span><span class="tabular-nums">{{ money(e.amount) }}</span></div>
+              <div class="mt-1 h-1.5 rounded-full bg-surface-2"><div class="h-1.5 rounded-full bg-ink/70" [style.width.%]="share(e.amount, expensesTotal())"></div></div>
+            </li>
+          }
+        </ul>
+      </section>
+    }
+  }
+
+  <!-- inventario -->
+  <section class="card mt-4 p-5" aria-labelledby="inventory-title">
+    <div class="flex flex-wrap items-baseline justify-between gap-2">
+      <h2 id="inventory-title" class="font-bold">Inventario hoy</h2>
+      <a routerLink="/app/productos" class="text-xs font-semibold text-accent hover:underline">Ver productos</a>
+    </div>
+    @if (inventory.value(); as inv) {
+      <div class="mt-3 grid gap-3 text-sm sm:grid-cols-3">
+        <div><p class="text-muted">Valor al costo</p><p class="text-xl font-extrabold tabular-nums">{{ money(inv.value) }}</p></div>
+        <div><p class="text-muted">Unidades</p><p class="text-xl font-extrabold tabular-nums">{{ inv.units }} <span class="text-sm font-normal text-faint">en {{ inv.products }} producto(s)</span></p></div>
+        <div><p class="text-muted">Con stock bajo</p><p class="text-xl font-extrabold tabular-nums" [class.text-danger]="inv.lowStock > 0">{{ inv.lowStock }}</p></div>
+      </div>
+      @if (inv.items.length) {
+        <ul class="mt-4 divide-y divide-line text-sm">
+          @for (i of inv.items.slice(0, 8); track i.productId) {
+            <li class="flex items-center gap-3 py-2">
+              <span class="min-w-0 flex-1 truncate">{{ i.name }} <span class="text-xs text-faint">· {{ i.categoryName }}</span></span>
+              <span class="tabular-nums" [class.text-danger]="i.isLow">{{ i.stock }} und.</span>
+              <span class="w-28 text-right tabular-nums">{{ i.cost === null ? 'sin costo' : money(i.value) }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="mt-3 text-sm text-muted">Ningún producto lleva inventario todavía.</p>
+      }
+      @if (inv.withoutCost > 0) {
+        <p class="mt-2 text-xs text-faint">{{ inv.withoutCost }} producto(s) sin costo no suman al valor.</p>
+      }
+    } @else if (inventory.error()) {
+      <p class="mt-3 text-sm text-danger">No se pudo cargar el inventario.</p>
+    } @else {
+      <div class="mt-3 h-20 animate-pulse rounded-xl bg-surface-2"></div>
+    }
+  </section>
+
+  <!-- exportar -->
+  <section class="card mt-4 p-5" aria-labelledby="export-title">
+    <h2 id="export-title" class="font-bold">Exportar a Excel</h2>
+    <p class="mt-1 text-sm text-muted">Archivos CSV del periodo elegido ({{ date(from()) }} al {{ date(to()) }}) listos para abrir con doble clic en Excel o subir a Google Sheets.</p>
+    <ul class="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+      @for (e of exports; track e.kind) {
+        <li>
+          <button type="button" class="flex w-full items-start gap-3 rounded-xl border border-line px-4 py-3 text-left transition hover:border-accent disabled:opacity-50" [disabled]="downloading() !== null || (e.kind !== 'inventory' && tooLong())" (click)="download(e.kind)">
+            <ng-icon name="heroArrowDownTray" size="18" class="mt-0.5 shrink-0 text-accent" />
+            <span>
+              <span class="block text-sm font-semibold">{{ downloading() === e.kind ? 'Descargando…' : e.label }}</span>
+              <span class="block text-xs text-muted">{{ e.hint }}</span>
+            </span>
+          </button>
+        </li>
+      }
+    </ul>
+  </section>
+</div>

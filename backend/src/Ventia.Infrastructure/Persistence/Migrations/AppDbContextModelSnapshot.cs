@@ -925,6 +925,10 @@ namespace Ventia.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
+                    b.Property<decimal?>("UnitCost")
+                        .HasPrecision(14, 2)
+                        .HasColumnType("numeric(14,2)");
+
                     b.Property<decimal>("UnitPrice")
                         .HasPrecision(14, 2)
                         .HasColumnType("numeric(14,2)");

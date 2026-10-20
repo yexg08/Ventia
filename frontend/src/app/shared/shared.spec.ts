@@ -4,6 +4,8 @@ import { isPerson, normalizeDocument } from './documents';
 import { cartTotals, changeFor, lineAmounts } from './cart';
 import { addDays, localIsoDate } from './dates';
 import { nitCheckDigit, normalizeNit } from './nit';
+import { fileNameFrom } from './download';
+import { percentChange, presetRange, share } from '../features/app/reports/report-math';
 
 describe('nitCheckDigit (mismo algoritmo que Nit.cs en el backend)', () => {
   it.each([
@@ -115,5 +117,34 @@ describe('fechas locales', () => {
   it('formatea y suma días sin moverse por la zona horaria', () => {
     expect(localIsoDate(new Date(2026, 0, 5))).toBe('2026-01-05');
     expect(addDays('2026-12-25', 10)).toBe('2027-01-04');
+  });
+});
+
+describe('fileNameFrom', () => {
+  it('prefiere filename* que admite tildes', () => {
+    expect(fileNameFrom(`attachment; filename=ventas.csv; filename*=UTF-8''ventas_2026-10-01.csv`, 'x.csv')).toBe('ventas_2026-10-01.csv');
+  });
+
+  it('usa filename o el nombre por defecto', () => {
+    expect(fileNameFrom('attachment; filename="gastos.csv"', 'x.csv')).toBe('gastos.csv');
+    expect(fileNameFrom(null, 'x.csv')).toBe('x.csv');
+  });
+});
+
+describe('reportes', () => {
+  it('atajos de fechas', () => {
+    expect(presetRange('today', '2026-10-19')).toEqual({ from: '2026-10-19', to: '2026-10-19' });
+    expect(presetRange('week', '2026-10-03')).toEqual({ from: '2026-09-27', to: '2026-10-03' });
+    expect(presetRange('month', '2026-10-19')).toEqual({ from: '2026-10-01', to: '2026-10-19' });
+    expect(presetRange('lastMonth', '2026-03-15')).toEqual({ from: '2026-02-01', to: '2026-02-28' });
+    expect(presetRange('lastMonth', '2027-01-02')).toEqual({ from: '2026-12-01', to: '2026-12-31' });
+  });
+
+  it('variacion y participacion', () => {
+    expect(percentChange(120000, 100000)).toBe(20);
+    expect(percentChange(50000, 200000)).toBe(-75);
+    expect(percentChange(1000, 0)).toBeNull();
+    expect(share(1, 3)).toBe(33.3);
+    expect(share(5, 0)).toBe(0);
   });
 });

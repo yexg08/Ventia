@@ -129,6 +129,9 @@ public class SaleLine : ITenantOwned
     public decimal LineBase { get; set; }
     public decimal LineTax { get; set; }
 
+    /// <summary>costo promedio del producto al vender (null si no tenia costo) para que la utilidad no cambie con compras posteriores</summary>
+    public decimal? UnitCost { get; set; }
+
     /// <summary>nota para la cocina (sin cebolla)</summary>
     public string? Note { get; set; }
 }

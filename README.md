@@ -22,7 +22,7 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
 | 4 | Punto de venta: carrito, descuentos, pago mixto, consecutivo, anulación, caja, tipo de pedido, notas y adiciones | Hecha |
 | 5 | Compras con costo promedio y cotizaciones que se convierten en venta | Hecha |
 | 6 | Gastos y pagos a proveedores | Hecha |
-| 7 | Reportes y exportación a CSV | Pendiente |
+| 7 | Reportes y exportación a CSV | Hecha |
 | 8 | Pulido: datos de ejemplo, README bilingüe, capturas | Pendiente |
 | 9 | Diseño final: moderno, minimalista y con animaciones suaves | Pendiente |
 
@@ -101,6 +101,15 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
   - **Compras de contado o a crédito.** Las de crédito quedan en **cuentas por pagar**, agrupadas por proveedor y con los días que llevan abiertas.
   - **Abonos:** una compra se paga en uno o varios pagos. **Nunca se paga más que el saldo, ni con pagos simultáneos:** el abono es un solo `UPDATE` con la condición adentro (una prueba lanza 5 abonos del 40 % a la vez y solo entran 2), y una restricción `CHECK` de la base es la última barrera.
   - Anular un pago devuelve el saldo una sola vez aunque se anule varias veces al mismo tiempo. Una compra con pagos no se anula hasta anular sus pagos.
+- **Reportes (fase 7, solo el dueño):**
+  - Total vendido con la variación frente al periodo anterior de la misma duración, número de ventas, ticket promedio y descuentos.
+  - **Utilidad:** ventas sin impuestos − costo de lo vendido = utilidad bruta − gastos = utilidad neta. Las compras de mercancía no se restan, porque entran al inventario y cuentan como costo cuando se venden.
+  - **El costo queda congelado en cada venta:** se guarda el costo promedio del momento, así una compra posterior que lo cambie no altera la utilidad de ventas pasadas (con prueba).
+  - Ventas por día (incluye los días sin ventas), horas pico, medios de pago, tipo de pedido, productos más vendidos con su utilidad, impuestos cobrados (INC e IVA), vendedores, diferencias al cerrar caja por cajero, gastos por categoría y valor del inventario al costo.
+  - Los días se cuentan en la zona horaria del negocio. Máximo un año por consulta.
+- **Exportación a CSV:** ventas, productos vendidos, gastos, compras e inventario.
+  - Pensados para abrir con doble clic en Excel en español: separador punto y coma, coma decimal y UTF-8 con BOM (las tildes salen bien).
+  - **Protegidos contra inyección de fórmulas:** un nombre o una descripción que empiece por `=`, `+`, `-` o `@` se exporta como texto, para que Excel no lo ejecute (con prueba).
 - **Seguridad:**
   - Denegar por defecto, con una prueba que recorre todos los endpoints con cada rol.
   - Bloqueo tras 5 intentos fallidos y límite de peticiones en login y registro.

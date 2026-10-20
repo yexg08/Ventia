@@ -7,6 +7,7 @@ import {
   heroArchiveBox,
   heroBanknotes,
   heroBars3,
+  heroChartBar,
   heroClipboardDocumentList,
   heroCog6Tooth,
   heroDocumentDuplicate,
@@ -36,7 +37,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   imports: [RouterOutlet, RouterLink, RouterLinkActive, NgIcon, Logo, ThemeToggle],
-  providers: [provideIcons({ heroArrowRightOnRectangle, heroArchiveBox, heroBanknotes, heroBars3, heroClipboardDocumentList, heroCog6Tooth, heroDocumentDuplicate, heroDocumentText, heroHome, heroInboxArrowDown, heroShoppingCart, heroTag, heroTruck, heroUserGroup, heroUsers, heroXMark })],
+  providers: [provideIcons({ heroArrowRightOnRectangle, heroArchiveBox, heroBanknotes, heroBars3, heroChartBar, heroClipboardDocumentList, heroCog6Tooth, heroDocumentDuplicate, heroDocumentText, heroHome, heroInboxArrowDown, heroShoppingCart, heroTag, heroTruck, heroUserGroup, heroUsers, heroXMark })],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './shell.html',
 })
@@ -44,7 +45,6 @@ export class Shell {
   protected readonly auth = inject(AuthService);
   protected readonly menuOpen = signal(false);
 
-  // la fase de reportes agrega aqui su entrada
   private readonly items: NavItem[] = [
     { path: '/app', label: 'Inicio', icon: 'heroHome', exact: true, ownerOnly: false },
     { path: '/app/vender', label: 'Vender', icon: 'heroShoppingCart', exact: false, ownerOnly: false },
@@ -52,6 +52,7 @@ export class Shell {
     { path: '/app/cotizaciones', label: 'Cotizaciones', icon: 'heroDocumentDuplicate', exact: false, ownerOnly: false },
     { path: '/app/productos', label: 'Productos', icon: 'heroArchiveBox', exact: false, ownerOnly: false },
     { path: '/app/clientes', label: 'Clientes', icon: 'heroUserGroup', exact: false, ownerOnly: false },
+    { path: '/app/reportes', label: 'Reportes', icon: 'heroChartBar', exact: false, ownerOnly: true },
     { path: '/app/gastos', label: 'Gastos', icon: 'heroBanknotes', exact: false, ownerOnly: false },
     { path: '/app/compras', label: 'Compras', icon: 'heroInboxArrowDown', exact: false, ownerOnly: true },
     { path: '/app/cuentas-por-pagar', label: 'Cuentas por pagar', icon: 'heroClipboardDocumentList', exact: false, ownerOnly: true },

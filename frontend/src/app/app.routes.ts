@@ -17,6 +17,7 @@ export const routes: Routes = [
       { path: 'cotizaciones', title: 'Cotizaciones · Ventia', loadComponent: () => import('./features/app/documents/quotes-page').then((m) => m.QuotesPage) },
       { path: 'gastos', title: 'Gastos · Ventia', loadComponent: () => import('./features/app/expenses/expenses-page').then((m) => m.ExpensesPage) },
       { path: 'cuentas-por-pagar', title: 'Cuentas por pagar · Ventia', canActivate: [ownerGuard], loadComponent: () => import('./features/app/documents/payables-page').then((m) => m.PayablesPage) },
+      { path: 'reportes', title: 'Reportes · Ventia', canActivate: [ownerGuard], loadComponent: () => import('./features/app/reports/reports-page').then((m) => m.ReportsPage) },
       { path: 'compras', title: 'Compras · Ventia', canActivate: [ownerGuard], loadComponent: () => import('./features/app/documents/purchases-page').then((m) => m.PurchasesPage) },
       { path: 'productos', title: 'Productos · Ventia', loadComponent: () => import('./features/app/products/products-page').then((m) => m.ProductsPage) },
       { path: 'clientes', title: 'Clientes · Ventia', loadComponent: () => import('./features/app/parties/customers-page').then((m) => m.CustomersPage) },

@@ -470,3 +470,83 @@ export interface QuoteUpsert {
   lines: { productId: string; quantity: number; discountPercent: number }[];
   notes: string | null;
 }
+
+export interface DaySales {
+  date: string;
+  count: number;
+  total: number;
+}
+
+export interface HourSales {
+  hour: number;
+  count: number;
+  total: number;
+}
+
+export interface TopProduct {
+  productId: string;
+  name: string;
+  quantity: number;
+  total: number;
+  netSales: number;
+  /** null si alguna venta del producto no tenia costo */
+  cost: number | null;
+  profit: number | null;
+}
+
+export interface SalesReport {
+  from: string;
+  to: string;
+  salesCount: number;
+  voidedCount: number;
+  total: number;
+  netSales: number;
+  taxTotal: number;
+  discountTotal: number;
+  averageTicket: number;
+  /** periodo anterior de la misma duracion */
+  previousTotal: number;
+  previousCount: number;
+  /** compras de mercancia (entran al inventario y no se restan de la utilidad) */
+  purchases: number;
+  byDay: DaySales[];
+  byHour: HourSales[];
+  byMethod: PaymentSummary[];
+  byOrderType: { orderType: OrderType; count: number; total: number }[];
+  bySeller: { sellerName: string; count: number; total: number }[];
+  taxes: { tax: TaxType; base: number; amount: number }[];
+  topProducts: TopProduct[];
+  expensesByCategory: { category: ExpenseCategory; amount: number }[];
+  cashDifferences: { userName: string; sessions: number; difference: number }[];
+  profit: {
+    netSales: number;
+    costOfSales: number;
+    grossProfit: number;
+    expenses: number;
+    netProfit: number;
+    /** lineas vendidas de productos sin costo */
+    linesWithoutCost: number;
+  };
+}
+
+export interface InventoryItem {
+  productId: string;
+  name: string;
+  categoryName: string;
+  stock: number;
+  minStock: number;
+  cost: number | null;
+  value: number;
+  isLow: boolean;
+}
+
+export interface InventoryReport {
+  products: number;
+  units: number;
+  value: number;
+  withoutCost: number;
+  lowStock: number;
+  items: InventoryItem[];
+}
+
+export type ExportKind = 'sales' | 'products' | 'expenses' | 'purchases' | 'inventory';

@@ -182,6 +182,7 @@ public class SaleLineConfiguration : IEntityTypeConfiguration<SaleLine>
         b.Property(l => l.Tax).HasConversion<string>().HasMaxLength(10);
         foreach (var money in new[] { nameof(SaleLine.UnitPrice), nameof(SaleLine.DiscountAmount), nameof(SaleLine.LineTotal), nameof(SaleLine.LineBase), nameof(SaleLine.LineTax) })
             b.Property<decimal>(money).HasPrecision(14, 2);
+        b.Property(l => l.UnitCost).HasPrecision(14, 2);
         b.Property(l => l.DiscountPercent).HasPrecision(5, 2);
         b.HasIndex(l => l.ProductId);
         b.HasIndex(l => l.TenantId);

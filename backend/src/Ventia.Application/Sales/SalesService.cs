@@ -195,6 +195,7 @@ public class SalesService(
                 LineTotal = total,
                 LineBase = split.Base,
                 LineTax = split.Tax,
+                UnitCost = product.Cost,
                 Note = CommonValidators.Clean(line.Note)
             });
         }
