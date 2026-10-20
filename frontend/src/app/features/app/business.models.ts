@@ -54,3 +54,60 @@ export interface TemporaryPassword {
   temporaryPassword: string;
   expiresAt: string;
 }
+
+export interface Product {
+  id: string;
+  categoryId: string;
+  categoryName: string;
+  name: string;
+  code: string | null;
+  barcode: string | null;
+  /** precio con el impuesto incluido */
+  price: number;
+  basePrice: number;
+  taxAmount: number;
+  tax: TaxType;
+  /** null para el cajero (lo decide el servidor) */
+  cost: number | null;
+  marginPercent: number | null;
+  tracksStock: boolean;
+  stock: number;
+  minStock: number;
+  isLowStock: boolean;
+  isActive: boolean;
+}
+
+export interface ProductUpsert {
+  categoryId: string;
+  name: string;
+  code: string | null;
+  barcode: string | null;
+  price: number;
+  cost: number | null;
+  tax: TaxType;
+  tracksStock: boolean;
+  minStock: number;
+  isActive: boolean;
+  /** solo al crear */
+  initialStock: number | null;
+}
+
+export type StockAdjustmentKind = 'In' | 'Out' | 'Count';
+
+export interface StockAdjustment {
+  kind: StockAdjustmentKind;
+  quantity: number;
+  reason: string;
+}
+
+export type StockMovementType = 'Initial' | 'In' | 'Out' | 'Count';
+
+export interface StockMovement {
+  id: string;
+  createdAt: string;
+  type: StockMovementType;
+  quantity: number;
+  stockAfter: number;
+  reason: string | null;
+  userName: string;
+}

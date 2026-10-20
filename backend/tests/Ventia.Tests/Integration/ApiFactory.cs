@@ -141,6 +141,21 @@ public class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public static object NewCategory(string name = "Hamburguesas", int sortOrder = 0, bool isActive = true) =>
         new { name, sortOrder, isActive };
 
+    public static object NewProduct(
+        Guid categoryId, string name = "Gaseosa 400 ml", decimal price = 4000, decimal? cost = 2200, string tax = "Inc8",
+        bool tracksStock = true, int minStock = 5, int? initialStock = 10, string? code = null, string? barcode = null,
+        bool isActive = true) =>
+        new { categoryId, name, code, barcode, price, cost, tax, tracksStock, minStock, isActive, initialStock };
+
+    /// <summary>crea una categoria y un producto en ella y devuelve el id del producto</summary>
+    public static async Task<Guid> CreateProductAsync(HttpClient owner, int? initialStock = 10, bool tracksStock = true, string name = "Gaseosa 400 ml")
+    {
+        var categoryId = await CreateCategoryAsync(owner, $"Cat {Guid.NewGuid():N}"[..20]);
+        var response = await owner.PostAsJsonAsync("/api/products", NewProduct(categoryId, name, tracksStock: tracksStock, initialStock: initialStock));
+        await Expect(response, HttpStatusCode.Created);
+        return (await Json(response)).GetProperty("id").GetGuid();
+    }
+
     public static async Task<Guid> CreateCategoryAsync(HttpClient owner, string name = "Hamburguesas")
     {
         var response = await owner.PostAsJsonAsync("/api/categories", NewCategory(name));

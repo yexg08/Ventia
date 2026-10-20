@@ -5,7 +5,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { heroCheck, heroExclamationTriangle } from '@ng-icons/heroicons/outline';
 import { AuthService } from '../../core/auth/auth.service';
 import { API_BASE } from '../../core/http/api';
-import { BusinessSettings, Category, UserAccount } from './business.models';
+import { BusinessSettings, Category, Product, UserAccount } from './business.models';
 
 interface Step {
   title: string;
@@ -70,6 +70,7 @@ export class Home {
   // solo el dueno ve los primeros pasos (los cajeros no pueden leer cuentas ni cambiar ajustes)
   private readonly business = httpResource<BusinessSettings>(() => (this.auth.isOwner() ? `${API_BASE}/business` : undefined));
   private readonly categories = httpResource<Category[]>(() => (this.auth.isOwner() ? `${API_BASE}/categories` : undefined));
+  private readonly products = httpResource<Product[]>(() => (this.auth.isOwner() ? `${API_BASE}/products` : undefined));
   private readonly users = httpResource<UserAccount[]>(() => (this.auth.isOwner() ? `${API_BASE}/users` : undefined));
 
   protected readonly firstName = computed(() => this.auth.user()?.fullName.split(' ')[0] ?? '');
@@ -77,6 +78,7 @@ export class Home {
   protected readonly steps = computed<Step[]>(() => {
     const business = this.business.hasValue() ? this.business.value() : null;
     const categoryCount = this.categories.hasValue() ? this.categories.value().length : 0;
+    const productCount = this.products.hasValue() ? this.products.value().length : 0;
     const cashierCount = this.users.hasValue() ? this.users.value().filter((u) => u.role === 'Cashier').length : 0;
     return [
       { title: 'Crea tu negocio', text: 'Ya tienes tu cuenta de dueño.', done: true, link: null, action: '' },
@@ -93,6 +95,13 @@ export class Home {
         done: categoryCount > 0,
         link: '/app/categorias',
         action: 'Crear',
+      },
+      {
+        title: 'Agrega tus productos',
+        text: productCount > 0 ? `Tienes ${productCount} producto(s).` : 'Precio con impuesto incluido y, si quieres, el inventario.',
+        done: productCount > 0,
+        link: '/app/productos',
+        action: 'Agregar',
       },
       {
         title: 'Crea las cuentas de tus cajeros',

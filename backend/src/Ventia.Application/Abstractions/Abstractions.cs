@@ -1,5 +1,6 @@
 using Ventia.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 namespace Ventia.Application.Abstractions;
 
@@ -9,6 +10,11 @@ public interface IAppDbContext
 
     // todos los siguientes se filtran solos al negocio de la sesion
     DbSet<Category> Categories { get; }
+    DbSet<Product> Products { get; }
+    DbSet<StockMovement> StockMovements { get; }
+
+    /// <summary>transacciones y actualizaciones atomicas (como descontar stock sin carreras)</summary>
+    DatabaseFacade Database { get; }
 
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 }
@@ -17,6 +23,12 @@ public interface IAppDbContext
 public interface ICurrentUser
 {
     Guid? UserId { get; }
+
+    /// <summary>nombre de la cuenta (para dejar constancia de quien hizo cada movimiento)</summary>
+    string? Name { get; }
+
+    /// <summary>la sesion es del dueno del negocio (los costos y margenes solo se le muestran a el)</summary>
+    bool IsOwner { get; }
 }
 
 /// <summary>

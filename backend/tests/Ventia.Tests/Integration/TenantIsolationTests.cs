@@ -36,6 +36,29 @@ public class TenantIsolationTests(ApiFactory factory)
     }
 
     [Fact]
+    public async Task A_business_cannot_read_change_or_adjust_another_business_products()
+    {
+        var a = await factory.RegisterBusinessAsync();
+        var b = await factory.RegisterBusinessAsync();
+        var productOfA = await ApiFactory.CreateProductAsync(a.Client, initialStock: 10);
+        var categoryOfB = await ApiFactory.CreateCategoryAsync(b.Client);
+
+        Assert.Equal(0, (await ApiFactory.Json(await b.Client.GetAsync("/api/products"))).GetArrayLength());
+        await ApiFactory.Expect(await b.Client.GetAsync($"/api/products/{productOfA}"), HttpStatusCode.NotFound);
+        await ApiFactory.Expect(await b.Client.PutAsJsonAsync($"/api/products/{productOfA}", ApiFactory.NewProduct(categoryOfB)), HttpStatusCode.NotFound);
+        await ApiFactory.Expect(await b.Client.DeleteAsync($"/api/products/{productOfA}"), HttpStatusCode.NotFound);
+        await ApiFactory.Expect(await b.Client.GetAsync($"/api/products/{productOfA}/movements"), HttpStatusCode.NotFound);
+        await ApiFactory.Expect(await b.Client.PostAsJsonAsync($"/api/products/{productOfA}/stock-adjustments",
+            new { kind = "Out", quantity = 10, reason = "Robo" }), HttpStatusCode.NotFound);
+        await ApiFactory.Expect(await b.Client.PostAsJsonAsync($"/api/products/{productOfA}/stock-adjustments",
+            new { kind = "Count", quantity = 0, reason = "Robo" }), HttpStatusCode.NotFound);
+
+        // el stock de A sigue intacto
+        var product = await ApiFactory.Json(await a.Client.GetAsync($"/api/products/{productOfA}"));
+        Assert.Equal(10, product.GetProperty("stock").GetInt32());
+    }
+
+    [Fact]
     public async Task Two_businesses_can_use_the_same_category_names()
     {
         var a = await factory.RegisterBusinessAsync();

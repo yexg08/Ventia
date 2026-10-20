@@ -14,6 +14,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
 {
     public DbSet<Tenant> Tenants => Set<Tenant>();
     public DbSet<Category> Categories => Set<Category>();
+    public DbSet<Product> Products => Set<Product>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     /// <summary>
@@ -22,7 +24,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantContext
     /// </summary>
     private static readonly Dictionary<string, (string Field, string Message)> UniqueFields = new()
     {
-        [CategoryConfiguration.UniqueNameIndex] = ("Name", "Ya tienes una categoría con ese nombre.")
+        [CategoryConfiguration.UniqueNameIndex] = ("Name", "Ya tienes una categoría con ese nombre."),
+        [ProductConfiguration.UniqueCodeIndex] = ("Code", "Ya tienes un producto con ese código."),
+        [ProductConfiguration.UniqueBarcodeIndex] = ("Barcode", "Ya tienes un producto con ese código de barras.")
     };
 
     /// <summary>

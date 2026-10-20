@@ -1,4 +1,5 @@
 import { formatPrice, readableTextOn } from './format';
+import { splitTax } from './taxes';
 import { nitCheckDigit, normalizeNit } from './nit';
 
 describe('nitCheckDigit (mismo algoritmo que Nit.cs en el backend)', () => {
@@ -39,5 +40,17 @@ describe('readableTextOn', () => {
 
   it('usa texto oscuro sobre colores claros', () => {
     expect(readableTextOn('#f59e0b')).toBe('#111111');
+  });
+});
+
+describe('splitTax (misma regla que Taxes.Split en el backend)', () => {
+  it.each([
+    [4000, 'Inc8', 3703.7, 296.3],
+    [18000, 'Inc8', 16666.67, 1333.33],
+    [11900, 'Iva19', 10000, 1900],
+    [10500, 'Iva5', 10000, 500],
+    [2500, 'None', 2500, 0],
+  ] as const)('%i con %s', (gross, tax, base, taxAmount) => {
+    expect(splitTax(gross, tax)).toEqual({ base, tax: taxAmount });
   });
 });

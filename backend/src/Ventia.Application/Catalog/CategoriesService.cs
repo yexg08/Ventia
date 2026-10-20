@@ -67,10 +67,16 @@ public class CategoriesService(IAppDbContext db) : ICategoriesService
         return ToDto(category);
     }
 
-    // en la fase 2 se impedira borrar una categoria que tenga productos
+    // una categoria con productos no se borra (se desactiva o se mueven sus productos primero)
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
-        db.Categories.Remove(await FindAsync(id, ct));
+        var category = await FindAsync(id, ct);
+        var products = await db.Products.CountAsync(p => p.CategoryId == id, ct);
+        if (products > 0)
+            throw new BusinessRuleException(
+                $"\"{category.Name}\" tiene {products} producto(s). Muévelos a otra categoría o desactívala.");
+
+        db.Categories.Remove(category);
         await db.SaveChangesAsync(ct);
     }
 

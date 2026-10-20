@@ -1,0 +1,149 @@
+<div class="mx-auto max-w-6xl">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-extrabold tracking-tight sm:text-3xl">Productos</h1>
+      <p class="mt-1 text-muted">Tu menú con precios, impuestos e inventario.</p>
+    </div>
+    @if (auth.isOwner() && categories.value().length > 0) {
+      <button type="button" class="btn-primary" (click)="open()">
+        <ng-icon name="heroPlus" size="18" /> Nuevo producto
+      </button>
+    }
+  </div>
+
+  @if (!categories.isLoading() && categories.value().length === 0) {
+    <div class="card mt-8 border-dashed p-10 text-center">
+      <ng-icon name="heroArchiveBox" size="32" class="text-faint" />
+      <p class="mt-3 font-semibold">Primero crea las categorías del menú</p>
+      <p class="mt-1 text-sm text-muted">Cada producto va en una categoría (hamburguesas, bebidas…).</p>
+      @if (auth.isOwner()) {
+        <a routerLink="/app/categorias" class="btn-secondary mt-5">Ir a categorías</a>
+      }
+    </div>
+  } @else {
+    <!-- filtros -->
+    <div class="mt-8 flex flex-wrap items-center gap-3">
+      <div class="relative min-w-56 flex-1">
+        <ng-icon name="heroMagnifyingGlass" size="18" class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-faint" />
+        <label for="product-search" class="sr-only">Buscar por nombre, código o código de barras</label>
+        <input id="product-search" type="search" [formControl]="search" placeholder="Buscar por nombre o código" class="field-input pl-10" />
+      </div>
+      <label for="category-filter" class="sr-only">Filtrar por categoría</label>
+      <select id="category-filter" [formControl]="categoryFilter" class="field-input w-auto min-w-44">
+        <option value="">Todas las categorías</option>
+        @for (category of categories.value(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+      <button
+        type="button"
+        class="btn-secondary"
+        [attr.aria-pressed]="lowStockOnly()"
+        [class.!border-accent]="lowStockOnly()"
+        (click)="lowStockOnly.set(!lowStockOnly())"
+      >
+        <ng-icon name="heroExclamationTriangle" size="17" [class.text-accent]="lowStockOnly()" />
+        Stock bajo
+      </button>
+    </div>
+
+    @if (products.isLoading() && products.value().length === 0) {
+      <div class="card mt-4 h-64 animate-pulse bg-surface-2" aria-label="Cargando productos"></div>
+    } @else if (products.error()) {
+      <div class="card mt-4 p-8 text-center">
+        <p class="font-semibold">No se pudieron cargar los productos.</p>
+        <button type="button" class="btn-secondary mt-4" (click)="products.reload()">Reintentar</button>
+      </div>
+    } @else if (products.value().length === 0) {
+      <div class="card mt-4 border-dashed p-10 text-center">
+        <p class="font-semibold">{{ filtering() ? 'Ningún producto coincide con los filtros.' : 'Aún no hay productos' }}</p>
+        @if (!filtering()) {
+          <p class="mt-1 text-sm text-muted">
+            {{ auth.isOwner() ? 'Crea el primero con el botón "Nuevo producto".' : 'El dueño del negocio aún no los ha creado.' }}
+          </p>
+        }
+      </div>
+    } @else {
+      <section class="card mt-4 overflow-hidden" aria-label="Productos">
+        <div class="overflow-x-auto">
+          <table class="w-full min-w-[44rem] text-left text-sm">
+            <thead class="border-b border-line bg-surface-2 text-xs tracking-wider text-muted uppercase">
+              <tr>
+                <th scope="col" class="px-5 py-3 font-semibold">Producto</th>
+                <th scope="col" class="px-5 py-3 text-right font-semibold">Precio</th>
+                @if (auth.isOwner()) {
+                  <th scope="col" class="px-5 py-3 text-right font-semibold">Costo</th>
+                  <th scope="col" class="px-5 py-3 text-right font-semibold">Margen</th>
+                }
+                <th scope="col" class="px-5 py-3 text-right font-semibold">Stock</th>
+                @if (auth.isOwner()) {
+                  <th scope="col" class="px-5 py-3"><span class="sr-only">Acciones</span></th>
+                }
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-line">
+              @for (p of products.value(); track p.id) {
+                <tr [class.opacity-60]="!p.isActive">
+                  <td class="px-5 py-3.5">
+                    <p class="font-semibold">{{ p.name }}</p>
+                    <p class="text-xs text-muted">
+                      {{ p.categoryName }}@if (p.code) { · {{ p.code }} }
+                      @if (!p.isActive) {
+                        · <ng-icon name="heroEyeSlash" size="12" class="align-[-2px]" /> inactivo
+                      }
+                    </p>
+                  </td>
+                  <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                    <p class="font-semibold tabular-nums">{{ money(p.price) }}</p>
+                    <p class="text-xs text-faint">{{ taxLabel(p.tax) }}</p>
+                  </td>
+                  @if (auth.isOwner()) {
+                    <td class="px-5 py-3.5 text-right whitespace-nowrap text-muted tabular-nums">{{ p.cost === null ? '—' : money(p.cost) }}</td>
+                    <td class="px-5 py-3.5 text-right whitespace-nowrap tabular-nums" [class.text-danger]="(p.marginPercent ?? 0) < 0">
+                      {{ p.marginPercent === null ? '—' : p.marginPercent + ' %' }}
+                    </td>
+                  }
+                  <td class="px-5 py-3.5 text-right whitespace-nowrap">
+                    @if (!p.tracksStock) {
+                      <span class="text-xs text-faint">No lleva</span>
+                    } @else if (p.isLowStock) {
+                      <span class="inline-flex items-center gap-1 rounded-full bg-danger/15 px-2.5 py-1 text-xs font-semibold text-danger tabular-nums">
+                        <ng-icon name="heroExclamationTriangle" size="13" /> {{ p.stock }}
+                        <span class="sr-only">(stock bajo)</span>
+                      </span>
+                    } @else {
+                      <span class="font-semibold tabular-nums">{{ p.stock }}</span>
+                    }
+                  </td>
+                  @if (auth.isOwner()) {
+                    <td class="px-3 py-3.5">
+                      <div class="flex justify-end gap-0.5">
+                        @if (p.tracksStock) {
+                          <button type="button" class="btn-ghost px-2.5" (click)="adjust(p)" [attr.aria-label]="'Ajustar stock de ' + p.name" title="Ajustar stock">
+                            <ng-icon name="heroAdjustmentsHorizontal" size="18" />
+                          </button>
+                          <button type="button" class="btn-ghost px-2.5" (click)="history(p)" [attr.aria-label]="'Movimientos de ' + p.name" title="Movimientos">
+                            <ng-icon name="heroClock" size="18" />
+                          </button>
+                        }
+                        <button type="button" class="btn-ghost px-2.5" (click)="open(p)" [attr.aria-label]="'Editar ' + p.name" title="Editar">
+                          <ng-icon name="heroPencilSquare" size="18" />
+                        </button>
+                        <button type="button" class="btn-ghost px-2.5 hover:text-danger" (click)="remove(p)" [attr.aria-label]="'Eliminar ' + p.name" title="Eliminar">
+                          <ng-icon name="heroTrash" size="18" />
+                        </button>
+                      </div>
+                    </td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+      @if (lowStockCount() > 0 && !lowStockOnly()) {
+        <p class="mt-3 text-sm text-muted">{{ lowStockCount() }} producto(s) con stock bajo.</p>
+      }
+    }
+  }
+</div>

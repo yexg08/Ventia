@@ -12,6 +12,7 @@ export const routes: Routes = [
     loadComponent: () => import('./features/app/shell').then((m) => m.Shell),
     children: [
       { path: '', title: 'Inicio · Ventia', loadComponent: () => import('./features/app/home').then((m) => m.Home) },
+      { path: 'productos', title: 'Productos · Ventia', loadComponent: () => import('./features/app/products/products-page').then((m) => m.ProductsPage) },
       { path: 'categorias', title: 'Categorías · Ventia', loadComponent: () => import('./features/app/categories/categories-page').then((m) => m.CategoriesPage) },
       { path: 'usuarios', title: 'Usuarios · Ventia', canActivate: [ownerGuard], loadComponent: () => import('./features/app/users/users-page').then((m) => m.UsersPage) },
       { path: 'configuracion', title: 'Configuración · Ventia', canActivate: [ownerGuard], loadComponent: () => import('./features/app/settings/settings').then((m) => m.Settings) },

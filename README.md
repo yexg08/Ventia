@@ -17,7 +17,7 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
 | Fase | Contenido | Estado |
 |---|---|---|
 | 1 | Base: registro de negocios, login, roles dueño y cajero, cuentas de cajeros, configuración del negocio, categorías, superadmin, Docker y CI | Hecha |
-| 2 | Catálogo e inventario: productos, movimientos de stock, stock que nunca queda negativo | Pendiente |
+| 2 | Catálogo e inventario: productos, movimientos de stock, stock que nunca queda negativo | Hecha |
 | 3 | Clientes y proveedores (NIT con dígito de verificación) | Pendiente |
 | 4 | Punto de venta: carrito, descuentos, pago mixto, consecutivo, anulación, caja, tipo de pedido, notas y adiciones | Pendiente |
 | 5 | Compras, cotizaciones, órdenes y remisiones (costo promedio) | Pendiente |
@@ -36,7 +36,7 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
 | Pruebas | xUnit + `WebApplicationFactory` + **Testcontainers** (PostgreSQL real) · Vitest |
 | Infraestructura | Docker (imagen única: la API sirve el frontend compilado) · GitHub Actions · Dependabot |
 
-## Lo que ya hace (fase 1)
+## Lo que ya hace
 
 - **Multi-negocio con aislamiento en tres barreras**, la misma base probada en Flow:
   - El negocio de la sesión sale de la base de datos en cada petición (`SessionValidator`), nunca del token ni del cliente.
@@ -56,6 +56,18 @@ con inventario y reportes, donde cada negocio tiene su propio panel y sus datos 
   - Dirección, teléfono, zona horaria y mensaje al pie del comprobante.
   - Impuesto por defecto: INC 8 % (comidas rápidas), IVA 19 %, IVA 5 % o sin impuesto.
 - **Categorías del menú**, con orden, activas o inactivas y nombres únicos sin importar mayúsculas (también protegido en la base).
+- **Productos (fase 2):**
+  - Precio con el impuesto incluido. La base y el impuesto se separan con una sola regla de redondeo, y base más impuesto siempre da el precio cobrado (con pruebas).
+  - Costo y margen sobre el precio sin impuesto, que **solo ve el dueño**. El servidor no los envía al cajero, no basta con ocultar la columna.
+  - Código y código de barras opcionales, únicos por negocio (también protegidos en la base).
+  - Búsqueda, filtro por categoría y filtro de stock bajo.
+  - Un producto con movimientos no se borra, solo se desactiva. Una categoría con productos tampoco se borra.
+- **Inventario (fase 2):**
+  - Cada producto decide si lleva inventario: una gaseosa sí, una hamburguesa preparada no.
+  - Entradas, salidas y conteos físicos con motivo. Cada cambio queda como movimiento con quién lo hizo y el stock que quedó.
+  - **El stock nunca queda negativo, ni con salidas simultáneas:** el descuento es un solo `UPDATE` con la condición adentro, y una prueba lanza 8 salidas a la vez sobre un stock de 5 y solo entran 5. Además, una restricción `CHECK` de PostgreSQL rechaza el stock negativo aunque el código se equivocara.
+  - El stock siempre es igual a la suma de sus movimientos (con prueba).
+  - El mismo servicio de inventario lo usarán las ventas de la fase 4, dentro de la misma transacción.
 - **Seguridad:**
   - Denegar por defecto, con una prueba que recorre todos los endpoints con cada rol.
   - Bloqueo tras 5 intentos fallidos y límite de peticiones en login y registro.
@@ -126,15 +138,15 @@ GitHub Actions corre en cada push:
 ```
 backend/
   src/
-    Ventia.Domain/          Entidades (Tenant, Category…), impuestos e ITenantOwned
-    Ventia.Application/     Casos de uso, DTOs, validaciones, NIT
+    Ventia.Domain/          Entidades (Tenant, Category, Product, StockMovement…), impuestos e ITenantOwned
+    Ventia.Application/     Casos de uso, DTOs, validaciones, NIT, servicio de inventario
     Ventia.Infrastructure/  EF Core + Identity, filtro e interceptor de negocio, auth, cuentas, migraciones
     Ventia.Api/             Controladores, políticas, validación de sesión, cabeceras, límites, frontend compilado
   tests/Ventia.Tests/       Integración contra PostgreSQL real + unitarias
 frontend/
   src/app/
     core/                   Sesión, interceptores, guards, tema, avisos
-    shared/                 Logo, diálogo de confirmación, formatos, NIT
+    shared/                 Logo, diálogo de confirmación, formatos, NIT, desglose de impuestos
     features/               landing, auth, app (panel del negocio), admin
 ```
 
