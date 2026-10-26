@@ -19,12 +19,12 @@ su propio panel (dueño y cajeros) y sus datos quedan completamente aislados de 
 
 | | |
 |---|---|
-| ![Vender](docs/screenshots/pos.png) | ![Comprobante](docs/screenshots/receipt.png) |
-| **Vender**: menú por categorías, tipo de pedido, notas, adiciones y descuentos | **Comprobante** imprimible con el INC desglosado |
-| ![Reportes](docs/screenshots/reports.png) | ![Cierre de caja](docs/screenshots/close-cash.png) |
-| **Reportes**: utilidad real, ventas por día y horas pico | **Cierre de caja** con el efectivo esperado y la diferencia |
-| ![Compra](docs/screenshots/purchase.png) | ![Inicio](docs/screenshots/landing.png) |
-| **Compra a crédito** con sus abonos | **Página de inicio**, en tema claro y oscuro |
+| ![Inicio](docs/screenshots/home.png) | ![Reportes](docs/screenshots/reports.png) |
+| **Inicio**: ventas del día, ticket promedio, deuda con proveedores y stock bajo | **Reportes**: utilidad real, ventas por día y lo más vendido |
+| ![Gastos](docs/screenshots/expenses.png) | ![Compras](docs/screenshots/purchases.png) |
+| **Gastos**: arriendo, servicios, nómina y cuáles salieron de la caja | **Compras** a proveedores, con las que aún se deben |
+| ![Detalle de compra](docs/screenshots/purchase-detail.png) | |
+| **Compra a crédito**: ítems, total, pagado y saldo | |
 
 ## Lo más interesante
 

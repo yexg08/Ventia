@@ -19,12 +19,12 @@ dashboard (owner and cashiers), and its data is completely isolated from every o
 
 | | |
 |---|---|
-| ![Point of sale](docs/screenshots/pos.png) | ![Receipt](docs/screenshots/receipt.png) |
-| **Point of sale**: menu by category, order type, notes, add-ons and discounts | **Printable receipt** with the consumption tax broken down |
-| ![Reports](docs/screenshots/reports.png) | ![Closing the register](docs/screenshots/close-cash.png) |
-| **Reports**: real profit, sales by day and peak hours | **Closing the register**, with expected cash and the difference |
-| ![Purchase](docs/screenshots/purchase.png) | ![Landing page](docs/screenshots/landing.png) |
-| **Purchase on credit** with its partial payments | **Landing page**, light and dark themes |
+| ![Home](docs/screenshots/home.png) | ![Reports](docs/screenshots/reports.png) |
+| **Home**: sales of the day, average ticket, supplier debt and low stock | **Reports**: real profit, sales by day and top sellers |
+| ![Expenses](docs/screenshots/expenses.png) | ![Purchases](docs/screenshots/purchases.png) |
+| **Expenses**: rent, services, payroll, and which ones came out of the register | **Purchases** from suppliers, with the ones still owed |
+| ![Purchase detail](docs/screenshots/purchase-detail.png) | |
+| **Purchase on credit**: items, total, paid amount and balance | |
 
 ## What is interesting about it
 
